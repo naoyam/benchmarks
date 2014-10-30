@@ -1,6 +1,6 @@
 #ifndef DIFFUSION3D_DIFFUSION3D_FORTRAN_H_
 #define DIFFUSION3D_DIFFUSION3D_FORTRAN_H_
-/Users/naoya/projects/benchmarks/benchmarks/diffusion3d/diffusion3d_cuda_shared4.cu
+
 #include "diffusion3d/diffusion3d.h"
 #include "diffusion3d/baseline.h"
 
