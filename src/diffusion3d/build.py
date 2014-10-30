@@ -23,14 +23,16 @@ for x in bx:
                 continue
             all_configs.append(c)
 
-make_opt = sys.argv[1:]            
-
+make_opt = " ".join(sys.argv[1:])
+print make_opt
+print "debug " + ", ".join(sys.argv)
 for c in all_configs:
     print c
     proc = subprocess.Popen("make clean", shell=True)
     proc.wait()
     command="make cuda BLOCK_X=%d BLOCK_Y=%d GRID_Z=%d %s" % \
         (c[0], c[1], c[2], make_opt)
+    print command
     proc = subprocess.Popen(command, shell=True)
     proc.wait()
     dirname = "%dx%dx%d" % (c[0], c[1], c[2])
