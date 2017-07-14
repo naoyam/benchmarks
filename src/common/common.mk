@@ -10,8 +10,8 @@ endif
 UNAME := $(shell uname -s)
 
 CFLAGS = -I.. $(DEBUG_FLAGS) $(OPT_FLAGS) $(WARNING_FLAGS)
-CXXFLAGS =  -I..$(DEBUG_FLAGS) $(OPT_FLAGS) $(WARNING_FLAGS)
-FFLAGS =  -I..$(DEBUG_FLAGS) $(OPT_FLAGS) $(WARNING_FLAGS)
+CXXFLAGS = --std=c++11 -I.. $(DEBUG_FLAGS) $(OPT_FLAGS) $(WARNING_FLAGS)
+FFLAGS =  -I.. $(DEBUG_FLAGS) $(OPT_FLAGS) $(WARNING_FLAGS)
 LDFLAGS = -lm -m64
 
 .SUFFIXES: .f90
@@ -29,7 +29,7 @@ MPI_INCLUDE = $(shell mpicc -show | sed 's/.*-I\([\/a-zA-Z0-9_\-]*\).*/\1/g')
 # CUDA
 NVCC = nvcc
 NVCC_CFLAGS = -m64 -I.. -Xcompiler -Wall -Xptxas -v # -keep
-NVCC_ARCH = -arch sm_20
+NVCC_ARCH = -arch sm_30
 ifneq ($(DEBUG),)
 NVCC_CFLAGS += -g -G
 else
