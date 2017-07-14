@@ -5,8 +5,7 @@ include $(INCLUDEPATH)common.mk
 SRC = 
 OBJ = $(filter %.o,$(SRC:%.cc=%.o)) $(filter %.o,$(SRC:%.c=%.o))
 
-EXE = diffusion_baseline \
-	diffusion_openmp
+EXE = diffusion_baseline diffusion_openmp diffusion_cuda
 
 	# diffusion_openmp_temporal_blocking \
 	# diffusion_cuda \

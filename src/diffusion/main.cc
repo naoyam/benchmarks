@@ -22,11 +22,6 @@ using std::make_pair;
 #include "diffusion/diffusion_openmp.h"
 #endif
 
-#if 0
-#if defined(OPENMP_TEMPORAL_BLOCKING)
-#include "diffusion3d/diffusion3d_openmp_temporal_blocking.h"
-#endif
-
 #if defined(CUDA)                                                       \
   || defined(CUDA_ZBLOCK)                                               \
   || defined(CUDA_OPT0)                                                 \
@@ -41,23 +36,29 @@ using std::make_pair;
   || defined(CUDA_SHARED5)                                              \
   || defined(CUDA_SHARED6)                                              \
   || defined(CUDA_XY)
-#include "diffusion3d/diffusion3d_cuda.h"
+#include "diffusion/diffusion_cuda.h"
 #endif
 
+#if 0
+#if defined(OPENMP_TEMPORAL_BLOCKING)
+#include "diffusion3d/diffusion3d_openmp_temporal_blocking.h"
+#endif
+
+
 #if defined(CUDA_TEMPORAL_BLOCKING)
-#include "diffusion3d/diffusion3d_cuda_temporal_blocking.h"
+#include "diffusion/diffusion_cuda_temporal_blocking.h"
 #endif
 
 #if defined(MIC)
-#include "diffusion3d/diffusion3d_mic.h"
+#include "diffusion/diffusion_mic.h"
 #endif
 
 #if defined(PHYSIS)
-#include "diffusion3d/diffusion3d_physis.h"
+#include "diffusion/diffusion_physis.h"
 #endif
 
 #if defined(FORTRAN) || defined(FORTRAN_ACC)
-#include "diffusion3d/diffusion3d_fortran.h"
+#include "diffusion/diffusion_fortran.h"
 #endif
 #endif
 
@@ -150,43 +151,43 @@ int main(int argc, char *argv[]) {
 #if defined(OPENMP)
   bmk = new DiffusionOpenMP(nd, dims.data());
 #elif defined(OPENMP_TEMPORAL_BLOCKING)
-  bmk = new Diffusion3DOpenMPTemporalBlocking(nx, nx, nx);
+  bmk = new DiffusionOpenMPTemporalBlocking(nx, nx, nx);
 #elif defined(CUDA)
-  bmk = new Diffusion3DCUDA(nx, nx, nx);
+  bmk = new DiffusionCUDA(nd, dims.data());
 #elif defined(CUDA_ZBLOCK)
-  bmk = new Diffusion3DCUDAZBlock(nx, nx, nx);
+  bmk = new DiffusionCUDAZBlock(nx, nx, nx);
 #elif defined(CUDA_OPT0)
-  bmk = new Diffusion3DCUDAOpt0(nx, nx, nx);
+  bmk = new DiffusionCUDAOpt0(nx, nx, nx);
 #elif defined(CUDA_OPT1)
-  bmk = new Diffusion3DCUDAOpt1(nx, nx, nx);
+  bmk = new DiffusionCUDAOpt1(nx, nx, nx);
 #elif defined(CUDA_OPT2)
-  bmk = new Diffusion3DCUDAOpt2(nx, nx, nx);
+  bmk = new DiffusionCUDAOpt2(nx, nx, nx);
 #elif defined(CUDA_OPT3)
-  bmk = new Diffusion3DCUDAOpt3(nx, nx, nx);
+  bmk = new DiffusionCUDAOpt3(nx, nx, nx);
 #elif defined(CUDA_SHARED)
-  bmk = new Diffusion3DCUDAShared(nx, nx, nx);
+  bmk = new DiffusionCUDAShared(nx, nx, nx);
 #elif defined(CUDA_SHARED1)
-  bmk = new Diffusion3DCUDAShared1(nx, nx, nx);
+  bmk = new DiffusionCUDAShared1(nx, nx, nx);
 #elif defined(CUDA_SHARED2)
-  bmk = new Diffusion3DCUDAShared2(nx, nx, nx);
+  bmk = new DiffusionCUDAShared2(nx, nx, nx);
 #elif defined(CUDA_SHARED3)
-  bmk = new Diffusion3DCUDAShared3(nx, nx, nx);
+  bmk = new DiffusionCUDAShared3(nx, nx, nx);
 #elif defined(CUDA_SHARED4)
-  bmk = new Diffusion3DCUDAShared4(nx, nx, nx);
+  bmk = new DiffusionCUDAShared4(nx, nx, nx);
 #elif defined(CUDA_SHARED5)
-  bmk = new Diffusion3DCUDAShared5(nx, nx, nx);
+  bmk = new DiffusionCUDAShared5(nx, nx, nx);
 #elif defined(CUDA_SHARED6)
-  bmk = new Diffusion3DCUDAShared6(nx, nx, nx);
+  bmk = new DiffusionCUDAShared6(nx, nx, nx);
 #elif defined(CUDA_XY)
-  bmk = new Diffusion3DCUDAXY(nx, nx, nx);
+  bmk = new DiffusionCUDAXY(nx, nx, nx);
 #elif defined(CUDA_TEMPORAL_BLOCKING)
-  bmk = new Diffusion3DCUDATemporalBlocking(nx, nx, nx);
+  bmk = new DiffusionCUDATemporalBlocking(nx, nx, nx);
 #elif defined(MIC)
-  bmk = new Diffusion3DMIC(nx, nx, nx);
+  bmk = new DiffusionMIC(nx, nx, nx);
 #elif defined(PHYSIS)
-  bmk = new Diffusion3DPhysis(nx, nx, nx, argc, argv);
+  bmk = new DiffusionPhysis(nx, nx, nx, argc, argv);
 #elif defined(FORTRAN) || defined(FORTRAN_ACC)
-  bmk = new Diffusion3DFortran(nx, nx, nx);  
+  bmk = new DiffusionFortran(nx, nx, nx);  
 #else
   bmk = new Baseline(nd, dims.data());
 #endif
