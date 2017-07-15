@@ -8,7 +8,6 @@ OBJ = $(filter %.o,$(SRC:%.cc=%.o)) $(filter %.o,$(SRC:%.c=%.o))
 EXE = diffusion_baseline diffusion_openmp diffusion_cuda
 
 	# diffusion_openmp_temporal_blocking \
-	# diffusion_cuda \
 	# diffusion_cuda_zblock \
 	# diffusion_cuda_opt0 \
 	# diffusion_cuda_opt1 \
@@ -40,7 +39,7 @@ ifneq ($(ENABLE_ROC),)
 endif	
 ##################################################
 
-all: diffusion_baseline diffusion_openmp
+all: $(EXE)
 
 .PHONY: baseline
 baseline: diffusion_baseline

@@ -6,8 +6,7 @@
 
 namespace diffusion {
 
-__global__ void diffusion_kernel2d(F1_DECL,
-                                   REAL * __restrict__ f2,
+__global__ void diffusion_kernel2d(const REAL *f1, REAL *f2,
                                    int nx, int ny,
                                    REAL ce, REAL cw, REAL cn, REAL cs,
                                    REAL cc) {
@@ -23,8 +22,7 @@ __global__ void diffusion_kernel2d(F1_DECL,
   return;
 }
 
-__global__ void diffusion_kernel3d(F1_DECL,
-                                   REAL * __restrict__ f2,
+__global__ void diffusion_kernel3d(const REAL *f1, REAL *f2,
                                    int nx, int ny, int nz,
                                    REAL ce, REAL cw, REAL cn, REAL cs,
                                    REAL ct, REAL cb, REAL cc) {
