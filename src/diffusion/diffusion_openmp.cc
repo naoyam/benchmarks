@@ -75,8 +75,8 @@ void DiffusionOpenMP::RunKernel2D(int count) {
         c =  x + y * nx_;
         w = (x == 0)    ? c : c - 1;
         e = (x == nx_-1) ? c : c + 1;
-        n = (y == 0)    ? c : c - nx_;
-        s = (y == ny_-1) ? c : c + nx_;
+        s = (y == 0)    ? c : c - nx_;
+        n = (y == ny_-1) ? c : c + nx_;
         f2_[c] = cc_ * f1_[c] + cw_ * f1_[w] + ce_ * f1_[e]
             + cs_ * f1_[s] + cn_ * f1_[n];
       }
@@ -102,8 +102,8 @@ void DiffusionOpenMP::RunKernel3D(int count) {
           c =  x + y * nx_ + z * nx_ * ny_;
           w = (x == 0)    ? c : c - 1;
           e = (x == nx_-1) ? c : c + 1;
-          n = (y == 0)    ? c : c - nx_;
-          s = (y == ny_-1) ? c : c + nx_;
+          s = (y == 0)    ? c : c - nx_;
+          n = (y == ny_-1) ? c : c + nx_;
           b = (z == 0)    ? c : c - nx_ * ny_;
           t = (z == nz_-1) ? c : c + nx_ * ny_;
           f2_[c] = cc_ * f1_[c] + cw_ * f1_[w] + ce_ * f1_[e]

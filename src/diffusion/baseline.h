@@ -48,8 +48,8 @@ class Baseline: public Diffusion {
             c =  x + y * nx_ + z * nx_ * ny_;
             w = (x == 0)    ? c : c - 1;
             e = (x == nx_-1) ? c : c + 1;
-            n = (y == 0)    ? c : c - nx_;
-            s = (y == ny_-1) ? c : c + nx_;
+            s = (y == 0)    ? c : c - nx_;
+            n = (y == ny_-1) ? c : c + nx_;
             b = (z == 0)    ? c : c - nx_ * ny_;
             t = (z == nz_-1) ? c : c + nx_ * ny_;
             REAL f = 0;
