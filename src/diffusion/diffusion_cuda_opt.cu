@@ -126,8 +126,8 @@ __global__ void kernel3d_opt2(F1_DECL f1,
 
 } // namespace cuda_opt
 
-void DiffusionCUDAOpt1::InitializeBenchmark() {
-  DiffusionCUDA::InitializeBenchmark();
+void DiffusionCUDAOpt1::Setup() {
+  DiffusionCUDA::Setup();
   FORCE_CHECK_CUDA(cudaFuncSetCacheConfig(cuda_opt::kernel3d_opt1,
                                           cudaFuncCachePreferL1));
 }
@@ -155,8 +155,8 @@ void DiffusionCUDAOpt1::RunKernel(int count) {
   return;
 }
 
-void DiffusionCUDAOpt2::InitializeBenchmark() {
-  DiffusionCUDA::InitializeBenchmark();
+void DiffusionCUDAOpt2::Setup() {
+  DiffusionCUDA::Setup();
   FORCE_CHECK_CUDA(cudaFuncSetCacheConfig(cuda_opt::kernel3d_opt2,
                                           cudaFuncCachePreferL1));
 }

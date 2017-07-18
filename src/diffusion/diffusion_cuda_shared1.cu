@@ -133,8 +133,8 @@ __global__ void kernel3d(F1_DECL f1, F2_DECL f2,
 
 } // namespace cuda_shared1
 
-void DiffusionCUDAShared1::InitializeBenchmark() {
-  DiffusionCUDA::InitializeBenchmark();
+void DiffusionCUDAShared1::Setup() {
+  DiffusionCUDA::Setup();
   FORCE_CHECK_CUDA(cudaFuncSetCacheConfig(cuda_shared1::kernel2d,
                                           cudaFuncCachePreferShared));
   FORCE_CHECK_CUDA(cudaFuncSetCacheConfig(cuda_shared1::kernel3d,

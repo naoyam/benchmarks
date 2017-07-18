@@ -107,9 +107,10 @@ class Diffusion {
   virtual std::string GetName() const = 0;
   void RunBenchmark(int count, bool dump) {
     std::cout << "*** Diffusion Benchmark ***\n";
-    std::cout << "Benchmark: " << GetName() << "\n";    
+    std::cout << "Benchmark: " << GetName() << "\n";
+    Setup();    
     std::cout << "Initializing benchmark input...\n";
-    InitializeBenchmark();
+    InitializeInput();
     std::cout << "Iteration count: " << count << "\n";
     std::cout << "Grid size: ";
     if (ndim_ == 2) {
@@ -117,6 +118,11 @@ class Diffusion {
     } else if (ndim_ == 3) {
       std::cout << nx_ << "x" << ny_ << "x" << nz_ << "\n";
     }
+    std::cout << "Warming up the kernel...\n";
+    WarmingUp();
+    std::cout << "Reinitializing benchmark input...\n";    
+    InitializeInput();
+    std::cout << "Running the kernel...\n";    
     Stopwatch st;
     StopwatchStart(&st);
     RunKernel(count);
@@ -132,8 +138,10 @@ class Diffusion {
     return std::string("diffusion_result.")
         + GetName() + std::string(".out");
   }
-  virtual void InitializeBenchmark() = 0;  
+  virtual void Setup() = 0;  
+  virtual void InitializeInput() = 0;  
   virtual void RunKernel(int count) = 0;
+  virtual void WarmingUp() = 0;  
   virtual void Dump() const = 0;
   virtual REAL GetAccuracy(int count) = 0;
   virtual void FinalizeBenchmark() = 0;    

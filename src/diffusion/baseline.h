@@ -12,17 +12,21 @@ class Baseline: public Diffusion {
   REAL *f1_, *f2_;
  public:
   Baseline(int ndim, const int *dims):
-      Diffusion(ndim, dims), f1_(NULL), f2_(NULL) {}
+      Diffusion(ndim, dims), f1_(NULL), f2_(NULL) {
+  }
   
   virtual std::string GetName() const {
     return std::string("baseline") + std::to_string(ndim_) + std::string("d");
   }
-  
-  virtual void InitializeBenchmark() {
+
+  virtual void Setup() {
     f1_ = (REAL*)malloc(sizeof(REAL) * nx_ * ny_ * nz_);
     assert(f1_);    
     f2_ = (REAL*)malloc(sizeof(REAL) * nx_ * ny_ * nz_);
     assert(f2_);
+  }
+  
+  virtual void InitializeInput() {
     Initialize(f1_, nx_, ny_, nz_,
                kx_, ky_, kz_, dx_, dy_, dz_,
                kappa_, 0.0, ndim_);
@@ -69,6 +73,10 @@ class Baseline: public Diffusion {
       f2_ = t;
     }
     return;
+  }
+
+  virtual void WarmingUp() {
+    RunKernel(1);
   }
     
   virtual REAL GetAccuracy(int count) {

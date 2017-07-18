@@ -16,7 +16,7 @@ class DiffusionCUDAOpt1: public DiffusionCUDA {
   virtual std::string GetName() const {
     return std::string("cuda_opt1");
   }
-  virtual void InitializeBenchmark();  
+  virtual void Setup();  
   virtual void RunKernel(int count);
 };
 
@@ -33,7 +33,7 @@ class DiffusionCUDAOpt2: public DiffusionCUDA {
   virtual std::string GetName() const {
     return std::string("cuda_opt2");
   }
-  virtual void InitializeBenchmark();    
+  virtual void Setup();    
   virtual void RunKernel(int count);
 };
 

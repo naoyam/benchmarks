@@ -34,7 +34,7 @@ class DiffusionCUDA: public Baseline {
   virtual std::string GetName() const {
     return std::string("cuda");
   }
-  virtual void InitializeBenchmark();
+  virtual void Setup();
   virtual void RunKernel(int count);
   virtual void FinalizeBenchmark();
   virtual void DisplayResult(int count, float time);
@@ -57,7 +57,7 @@ class DiffusionCUDAZBlock: public DiffusionCUDA {
   virtual std::string GetName() const {
     return std::string("cuda_zblock");
   }
-  virtual void InitializeBenchmark();  
+  virtual void Setup();  
   virtual void RunKernel(int count);
 };
 #if 0

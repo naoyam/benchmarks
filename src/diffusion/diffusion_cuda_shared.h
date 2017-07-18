@@ -13,7 +13,7 @@ class DiffusionCUDAShared1: public DiffusionCUDA {
   virtual std::string GetName() const {
     return std::string("cuda_shared1");
   }
-  virtual void InitializeBenchmark();  
+  virtual void Setup();  
   virtual void RunKernel(int count);
 };
 
@@ -25,7 +25,7 @@ class DiffusionCUDAShared2: public DiffusionCUDA {
   virtual std::string GetName() const {
     return std::string("cuda_shared2");
   }
-  virtual void InitializeBenchmark();  
+  virtual void Setup();  
   virtual void RunKernel(int count);
 };
 

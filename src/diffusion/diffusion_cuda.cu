@@ -70,12 +70,9 @@ __global__ void kernel3d_zblock(const REAL *f1, REAL *f2,
 
 } // namespace CUDABaseline
 
-void DiffusionCUDA::InitializeBenchmark() {
+void DiffusionCUDA::Setup() {
   size_t s = sizeof(REAL) * nx_ * ny_ * nz_;
   FORCE_CHECK_CUDA(cudaMallocHost((void**)&f1_, s));
-  Initialize(f1_, nx_, ny_, nz_,
-             kx_, ky_, kz_, dx_, dy_, dz_,
-             kappa_, 0.0, ndim_);
   FORCE_CHECK_CUDA(cudaMalloc((void**)&f1_d_, s));
   FORCE_CHECK_CUDA(cudaMalloc((void**)&f2_d_, s));
   FORCE_CHECK_CUDA(cudaFuncSetCacheConfig(cuda_baseline::kernel2d,
@@ -138,8 +135,8 @@ void DiffusionCUDA::DisplayResult(int count, float time) {
          GetThroughput(count ,time_wo_pci));
 }
 
-void DiffusionCUDAZBlock::InitializeBenchmark() {
-  DiffusionCUDA::InitializeBenchmark();
+void DiffusionCUDAZBlock::Setup() {
+  DiffusionCUDA::Setup();
   FORCE_CHECK_CUDA(cudaFuncSetCacheConfig(cuda_baseline::kernel3d_zblock,
                                           cudaFuncCachePreferL1));
 }
