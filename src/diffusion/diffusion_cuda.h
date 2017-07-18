@@ -15,12 +15,6 @@
 #define GRID_Z (4)
 #endif
 
-#if defined(ENABLE_ROC)
-#define F1_DECL const REAL * __restrict__ f1
-#else
-#define F1_DECL REAL *f1
-#endif
-
 namespace diffusion {
 
 class DiffusionCUDA: public Baseline {
