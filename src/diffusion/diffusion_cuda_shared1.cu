@@ -98,6 +98,7 @@ __global__ void kernel3d(F1_DECL f1, F2_DECL f2,
   int be = tid_x == blockDim.x-1 && i != nx - 1;
   int bs = tid_y == 0 && j != 0;
   int bn = tid_y == blockDim.y-1 && j != ny - 1;
+  REAL fw, fe, fs, fn;
 
   PRAGMA_UNROLL  
   for (; k < k_end-1; ++k) {
@@ -107,10 +108,11 @@ __global__ void kernel3d(F1_DECL f1, F2_DECL f2,
     t3 = f1[c+xy];
     REAL t = cc * t2 + cb * t1 + ct * t3;    
     __syncthreads();
-    t += cw * (bw ? f1[c-1] : sb[w]);
-    t += ce * (be ? f1[c+1] : sb[e]);
-    t += cs * (bs ? f1[c-nx] : sb[s]);
-    t += cn * (bn ? f1[c+nx] : sb[n]);
+    REAL fw = bw ? f1[c-1] : sb[w];
+    REAL fe = be ? f1[c+1] : sb[e];
+    REAL fs = bs ? f1[c-nx] : sb[s];
+    REAL fn = bn ? f1[c+nx] : sb[n];
+    t += cw * fw + ce * fe + cs * fs + cn * fn;
     f2[c] = t;
     c += xy;
     __syncthreads();
@@ -121,10 +123,11 @@ __global__ void kernel3d(F1_DECL f1, F2_DECL f2,
   t3 = (k < nz-1) ? f1[c+xy] : t3;
   REAL t = cc * t2 + cb * t1 + ct * t3;    
   __syncthreads();
-  t += cw * (bw ? f1[c-1] : sb[w]);
-  t += ce * (be ? f1[c+1] : sb[e]);
-  t += cs * (bs ? f1[c-nx] : sb[s]);
-  t += cn * (bn ? f1[c+nx] : sb[n]);
+  fw = bw ? f1[c-1] : sb[w];
+  fe = be ? f1[c+1] : sb[e];
+  fs = bs ? f1[c-nx] : sb[s];
+  fn = bn ? f1[c+nx] : sb[n];
+  t += cw * fw + ce * fe + cs * fs + cn * fn;
   f2[c] = t;
   return;
 }
