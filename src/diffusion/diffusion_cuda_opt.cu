@@ -9,6 +9,7 @@ namespace diffusion {
 namespace cuda_opt {
 
 // loop peeling, register blocking, z-dim blocking, unrolling
+template <int UNROLL_FACTOR>
 __global__ void kernel3d_opt1(F1_DECL f1,
                               F2_DECL f2,
                               int nx, int ny, int nz,
@@ -38,7 +39,9 @@ __global__ void kernel3d_opt1(F1_DECL f1,
   s += xy;
   ++k;
 
-#pragma unroll UNROLL
+  // can't use macro as the unroll parameter
+  // #pragma unroll UNROLL 
+#pragma unroll UNROLL_FACTOR
   for (; k < k_end-1; ++k) {
     t1 = t2;
     t2 = t3;
@@ -61,6 +64,7 @@ __global__ void kernel3d_opt1(F1_DECL f1,
 
 
 // opt1 + prefetch
+template <int UNROLL_FACTOR>
 __global__ void kernel3d_opt2(F1_DECL f1,
                               F2_DECL f2,
                               int nx, int ny, int nz,
@@ -92,7 +96,7 @@ __global__ void kernel3d_opt2(F1_DECL f1,
   s += xy;
   ++k;
   
-#pragma unroll UNROLL
+#pragma unroll UNROLL_FACTOR
   for (; k < k_end-2; ++k) {
     t1 = t2;
     t2 = t3;
@@ -132,7 +136,7 @@ __global__ void kernel3d_opt2(F1_DECL f1,
 
 void DiffusionCUDAOpt1::InitializeBenchmark() {
   DiffusionCUDA::InitializeBenchmark();
-  FORCE_CHECK_CUDA(cudaFuncSetCacheConfig(cuda_opt::kernel3d_opt1,
+  FORCE_CHECK_CUDA(cudaFuncSetCacheConfig(cuda_opt::kernel3d_opt1<UNROLL>,
                                           cudaFuncCachePreferL1));
 }
 
@@ -148,7 +152,7 @@ void DiffusionCUDAOpt1::RunKernel(int count) {
 
   CHECK_CUDA(cudaEventRecord(ev1_));
   for (int i = 0; i < count; ++i) {
-    cuda_opt::kernel3d_opt1<<<grid_dim, block_dim>>>
+    cuda_opt::kernel3d_opt1<UNROLL><<<grid_dim, block_dim>>>
         (f1_d_, f2_d_, nx_, ny_, nz_, ce_, cw_, cn_, cs_, ct_, cb_, cc_);
     REAL *t = f1_d_;
     f1_d_ = f2_d_;
@@ -161,7 +165,7 @@ void DiffusionCUDAOpt1::RunKernel(int count) {
 
 void DiffusionCUDAOpt2::InitializeBenchmark() {
   DiffusionCUDA::InitializeBenchmark();
-  FORCE_CHECK_CUDA(cudaFuncSetCacheConfig(cuda_opt::kernel3d_opt2,
+  FORCE_CHECK_CUDA(cudaFuncSetCacheConfig(cuda_opt::kernel3d_opt2<UNROLL>,
                                           cudaFuncCachePreferL1));
 }
 
@@ -177,7 +181,7 @@ void DiffusionCUDAOpt2::RunKernel(int count) {
 
   CHECK_CUDA(cudaEventRecord(ev1_));
   for (int i = 0; i < count; ++i) {
-    cuda_opt::kernel3d_opt2<<<grid_dim, block_dim>>>
+    cuda_opt::kernel3d_opt2<UNROLL><<<grid_dim, block_dim>>>
         (f1_d_, f2_d_, nx_, ny_, nz_, ce_, cw_, cn_, cs_, ct_, cb_, cc_);
     REAL *t = f1_d_;
     f1_d_ = f2_d_;
