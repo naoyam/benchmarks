@@ -40,6 +40,7 @@ class DiffusionCUDA: public Baseline {
   virtual void RunKernel(int count);
   virtual void FinalizeBenchmark();
   virtual void DisplayResult(int count, float time);
+  
  protected:
   REAL *f1_d_, *f2_d_;
   int block_x_, block_y_, block_z_;

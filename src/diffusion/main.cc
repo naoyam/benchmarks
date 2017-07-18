@@ -22,21 +22,11 @@ using std::make_pair;
 #include "diffusion/diffusion_openmp.h"
 #endif
 
-#if defined(CUDA)                                                       \
-  || defined(CUDA_ZBLOCK)                                               \
-  || defined(CUDA_OPT0)                                                 \
-  || defined(CUDA_OPT1)                                                 \
-  || defined(CUDA_OPT2)                                                 \
-  || defined(CUDA_OPT3)                                                 \
-  || defined(CUDA_SHARED)                                               \
-  || defined(CUDA_SHARED1)                                              \
-  || defined(CUDA_SHARED2)                                              \
-  || defined(CUDA_SHARED3)                                              \
-  || defined(CUDA_SHARED4)                                              \
-  || defined(CUDA_SHARED5)                                              \
-  || defined(CUDA_SHARED6)                                              \
-  || defined(CUDA_XY)
+#ifdef CUDA
 #include "diffusion/diffusion_cuda.h"
+#endif
+#ifdef CUDA_ROC
+#include "diffusion/diffusion_cuda_roc.h"
 #endif
 
 #if 0
@@ -154,6 +144,8 @@ int main(int argc, char *argv[]) {
   bmk = new DiffusionOpenMPTemporalBlocking(nx, nx, nx);
 #elif defined(CUDA)
   bmk = new DiffusionCUDA(nd, dims.data());
+#elif defined(CUDA_ROC)
+  bmk = new DiffusionCUDAROC(nd, dims.data());
 #elif defined(CUDA_ZBLOCK)
   bmk = new DiffusionCUDAZBlock(nx, nx, nx);
 #elif defined(CUDA_OPT0)

@@ -81,20 +81,22 @@ main_openmp.o: main.cc
 ##################################################
 .PHONY: cuda
 cuda: diffusion_cuda \
-	diffusion_cuda_zblock \
-	diffusion_cuda_opt0 \
-	diffusion_cuda_opt1 \
-	diffusion_cuda_opt2 \
-	diffusion_cuda_opt3 \
-	diffusion_cuda_shared \
-	diffusion_cuda_shared1 \
-	diffusion_cuda_shared2 \
-	diffusion_cuda_shared3 \
-	diffusion_cuda_shared4 \
-	diffusion_cuda_shared5 \
-	diffusion_cuda_shared6 \
-	diffusion_cuda_xy \
-	diffusion_cuda_temporal_blocking
+	diffusion_cuda_roc
+
+# diffusion_cuda_zblock \
+# 	diffusion_cuda_opt0 \
+# 	diffusion_cuda_opt1 \
+# 	diffusion_cuda_opt2 \
+# 	diffusion_cuda_opt3 \
+# 	diffusion_cuda_shared \
+# 	diffusion_cuda_shared1 \
+# 	diffusion_cuda_shared2 \
+# 	diffusion_cuda_shared3 \
+# 	diffusion_cuda_shared4 \
+# 	diffusion_cuda_shared5 \
+# 	diffusion_cuda_shared6 \
+# 	diffusion_cuda_xy \
+# 	diffusion_cuda_temporal_blocking
 ########################################
 # diffusion_cuda (baseline)
 diffusion_cuda: $(OBJ) main_cuda.o diffusion_cuda.o
@@ -102,6 +104,13 @@ diffusion_cuda: $(OBJ) main_cuda.o diffusion_cuda.o
 diffusion_cuda.o: diffusion_cuda.h
 main_cuda.o: main.cc diffusion_cuda.h
 	$(CXX) -o $@ -c $< $(CXXFLAGS) -DCUDA -I$(CUDA_INC)
+########################################
+# diffusion_cuda_roc
+diffusion_cuda_roc: $(OBJ) main_cuda_roc.o diffusion_cuda_roc.o diffusion_cuda.o
+	$(CXX) -o $@ $^ $(LDFLAGS) $(CUDA_LDFLAGS)
+diffusion_cuda_roc.o: diffusion_cuda_roc.h
+main_cuda_roc.o: main.cc diffusion_cuda.h diffusion_cuda_roc.h
+	$(CXX) -o $@ -c $< $(CXXFLAGS) -DCUDA_ROC -I$(CUDA_INC)
 ########################################
 # diffusion_cuda_zblock
 diffusion_cuda_zblock: $(OBJ) main_cuda_zblock.o diffusion_cuda.o

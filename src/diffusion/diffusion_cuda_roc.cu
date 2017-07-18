@@ -1,14 +1,14 @@
-#include "diffusion/diffusion_cuda.h"
+#include "diffusion/diffusion_cuda_roc.h"
 #include "common/cuda_util.h"
 
 #include <cuda.h>
 #include <cuda_runtime.h>
 
 namespace diffusion {
+namespace cuda_roc {
 
-namespace cuda_baseline {
-
-__global__ void kernel2d(const REAL *f1, REAL *f2,
+__global__ void kernel2d(const REAL * __restrict__ f1,
+                         REAL * __restrict__ f2,
                          int nx, int ny,
                          REAL ce, REAL cw, REAL cn, REAL cs,
                          REAL cc) {
@@ -19,12 +19,13 @@ __global__ void kernel2d(const REAL *f1, REAL *f2,
   int e = (i == nx-1)     ? c : c + 1;
   int s = (j == 0)        ? c : c - nx;
   int n = (j == ny-1)     ? c : c + nx;
-  f2[c] = cc * f1[c] + cw * f1[w] + ce * f1[e] + cs * f1[s]
-      + cn * f1[n];
+  f2[c] = cc * __ldg(f1+c) + cw * __ldg(f1+w) + ce * __ldg(f1+e)
+      + cs * __ldg(f1+s) + cn * __ldg(f1+n);
   return;
 }
 
-__global__ void kernel3d(const REAL *f1, REAL *f2,
+__global__ void kernel3d(const REAL * __restrict__ f1,
+                         REAL * __restrict__ f2,
                          int nx, int ny, int nz,
                          REAL ce, REAL cw, REAL cn, REAL cs,
                          REAL ct, REAL cb, REAL cc) {
@@ -39,42 +40,17 @@ __global__ void kernel3d(const REAL *f1, REAL *f2,
     int n = (j == ny-1)     ? c : c + nx;
     int b = (k == 0)        ? c : c - xy;
     int t = (k == nz-1)     ? c : c + xy;
-    f2[c] = cc * f1[c] + cw * f1[w] + ce * f1[e] + cs * f1[s]
-        + cn * f1[n] + cb * f1[b] + ct * f1[t];
+    f2[c] = cc * __ldg(f1+c) + cw * __ldg(f1+w) + ce * __ldg(f1+e)
+        + cs * __ldg(f1+s) + cn * __ldg(f1+n) + cb * __ldg(f1+b)
+        + ct * __ldg(f1+t);
     c += xy;
   }
   return;
 }
 
-} // namespace CUDABaseline
+} // namespace cuda_roc
 
-void DiffusionCUDA::InitializeBenchmark() {
-  size_t s = sizeof(REAL) * nx_ * ny_ * nz_;
-  FORCE_CHECK_CUDA(cudaMallocHost((void**)&f1_, s));
-  Initialize(f1_, nx_, ny_, nz_,
-             kx_, ky_, kz_, dx_, dy_, dz_,
-             kappa_, 0.0, ndim_);
-  FORCE_CHECK_CUDA(cudaMalloc((void**)&f1_d_, s));
-  FORCE_CHECK_CUDA(cudaMalloc((void**)&f2_d_, s));
-  FORCE_CHECK_CUDA(cudaFuncSetCacheConfig(cuda_baseline::kernel2d,
-                                          cudaFuncCachePreferL1));
-  FORCE_CHECK_CUDA(cudaFuncSetCacheConfig(cuda_baseline::kernel3d,
-                                          cudaFuncCachePreferL1));
-  FORCE_CHECK_CUDA(cudaEventCreate(&ev1_));
-  FORCE_CHECK_CUDA(cudaEventCreate(&ev2_));
-}
-
-void DiffusionCUDA::FinalizeBenchmark() {
-  assert(f1_);
-  FORCE_CHECK_CUDA(cudaFreeHost(f1_));
-  assert(f1_d_);
-  FORCE_CHECK_CUDA(cudaFree(f1_d_));
-  assert(f2_d_);
-  FORCE_CHECK_CUDA(cudaFree(f2_d_));
-}
-
-
-void DiffusionCUDA::RunKernel(int count) {
+void DiffusionCUDAROC::RunKernel(int count) {
   size_t s = sizeof(REAL) * nx_ * ny_ * nz_;  
   FORCE_CHECK_CUDA(cudaMemcpy(f1_d_, f1_, s, cudaMemcpyHostToDevice));
 
@@ -88,10 +64,10 @@ void DiffusionCUDA::RunKernel(int count) {
   CHECK_CUDA(cudaEventRecord(ev1_));
   for (int i = 0; i < count; ++i) {
     if (ndim_ == 2) {
-      cuda_baseline::kernel2d<<<grid_dim, block_dim>>>
+      cuda_roc::kernel2d<<<grid_dim, block_dim>>>
           (f1_d_, f2_d_, nx_, ny_, ce_, cw_, cn_, cs_, cc_);
     } else if (ndim_ == 3) {
-      cuda_baseline::kernel3d<<<grid_dim, block_dim>>>
+      cuda_roc::kernel3d<<<grid_dim, block_dim>>>
           (f1_d_, f2_d_, nx_, ny_, nz_, ce_, cw_, cn_, cs_, ct_, cb_, cc_);
     }
     REAL *t = f1_d_;
@@ -102,19 +78,6 @@ void DiffusionCUDA::RunKernel(int count) {
   FORCE_CHECK_CUDA(cudaMemcpy(f1_, f1_d_, s, cudaMemcpyDeviceToHost));
   FORCE_CHECK_CUDA(cudaDeviceSynchronize());
   return;
-}
-
-void DiffusionCUDA::DisplayResult(int count, float time) {
-  Baseline::DisplayResult(count, time);
-  float time_wo_pci;
-  cudaEventElapsedTime(&time_wo_pci, ev1_, ev2_);
-  time_wo_pci *= 1.0e-03;
-  printf("Kernel-only performance:\n");
-  printf("Elapsed time : %.3f (s)\n", time_wo_pci);
-  printf("FLOPS        : %.3f (GFLOPS)\n",
-         GetGFLOPS(count, time_wo_pci));
-  printf("Throughput   : %.3f (GB/s)\n",
-         GetThroughput(count ,time_wo_pci));
 }
 
 }
