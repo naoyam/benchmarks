@@ -87,7 +87,9 @@ cuda: diffusion_cuda \
 	diffusion_cuda_roc \
 	diffusion_cuda_l1 \
 	diffusion_cuda_opt1 \
-	diffusion_cuda_opt2
+	diffusion_cuda_opt2 \
+	diffusion_cuda_shared1 \
+	diffusion_cuda_shared2
 
 # 	diffusion_cuda_shared \
 # 	diffusion_cuda_shared1 \
@@ -142,30 +144,22 @@ main_cuda_opt2.o: main.cc diffusion_cuda.h
 	$(CXX) -o $@ -c $< $(CXXFLAGS) -DCUDA_OPT2 -I$(CUDA_INC)
 ########################################
 # diffusion_cuda_shared
-diffusion_cuda_shared: $(OBJ) main_cuda_shared.o diffusion_cuda.o \
-	diffusion_cuda_shared.o
-	$(CXX) -o $@ $^ $(LDFLAGS) $(CUDA_LDFLAGS)
-main_cuda_shared.o: main.cc diffusion_cuda.h
-	$(CXX) -o $@ -c $< $(CXXFLAGS) -DCUDA_SHARED -I$(CUDA_INC)
-diffusion_cuda_shared.o: diffusion_cuda.h
-# DISABLE L1 load caching
-diffusion_cuda_shared.o: NVCC_CFLAGS += -Xptxas -dlcm=cg
-########################################
-# diffusion_cuda_shared1
 diffusion_cuda_shared1: $(OBJ) main_cuda_shared1.o diffusion_cuda.o \
-	diffusion_cuda_shared.o diffusion_cuda_shared1.o
+	diffusion_cuda_shared1.o
 	$(CXX) -o $@ $^ $(LDFLAGS) $(CUDA_LDFLAGS)
 main_cuda_shared1.o: main.cc diffusion_cuda.h
 	$(CXX) -o $@ -c $< $(CXXFLAGS) -DCUDA_SHARED1 -I$(CUDA_INC)
-diffusion_cuda_shared1.o: diffusion_cuda.h
+diffusion_cuda_shared1.o: diffusion_cuda.h diffusion_cuda_shared.h
+# DISABLE L1 load caching
+#diffusion_cuda_shared.o: NVCC_CFLAGS += -Xptxas -dlcm=cg
 ########################################
-# diffusion_cuda_shared2
+# diffusion_cuda_shared1
 diffusion_cuda_shared2: $(OBJ) main_cuda_shared2.o diffusion_cuda.o \
-	diffusion_cuda_shared.o diffusion_cuda_shared2.o
+	diffusion_cuda_shared2.o
 	$(CXX) -o $@ $^ $(LDFLAGS) $(CUDA_LDFLAGS)
 main_cuda_shared2.o: main.cc diffusion_cuda.h
 	$(CXX) -o $@ -c $< $(CXXFLAGS) -DCUDA_SHARED2 -I$(CUDA_INC)
-diffusion_cuda_shared2.o: diffusion_cuda.h
+diffusion_cuda_shared2.o: diffusion_cuda.h diffusion_cuda_shared.h
 ########################################
 # diffusion_cuda_shared3
 diffusion_cuda_shared3: $(OBJ) main_cuda_shared3.o diffusion_cuda.o \

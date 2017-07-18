@@ -31,6 +31,9 @@ using std::make_pair;
 #if defined(CUDA_OPT1) || defined(CUDA_OPT2)
 #include "diffusion/diffusion_cuda_opt.h"
 #endif
+#if defined(CUDA_SHARED1) || defined(CUDA_SHARED2)
+#include "diffusion/diffusion_cuda_shared.h"
+#endif
 
 #if 0
 #if defined(OPENMP_TEMPORAL_BLOCKING)
@@ -155,22 +158,18 @@ int main(int argc, char *argv[]) {
   bmk = new DiffusionCUDAOpt1(nd, dims.data());
 #elif defined(CUDA_OPT2)
   bmk = new DiffusionCUDAOpt2(nd, dims.data());
-#elif defined(CUDA_OPT3)
-  bmk = new DiffusionCUDAOpt3(nx, nx, nx);
-#elif defined(CUDA_SHARED)
-  bmk = new DiffusionCUDAShared(nx, nx, nx);
 #elif defined(CUDA_SHARED1)
-  bmk = new DiffusionCUDAShared1(nx, nx, nx);
+  bmk = new DiffusionCUDAShared1(nd, dims.data());
 #elif defined(CUDA_SHARED2)
-  bmk = new DiffusionCUDAShared2(nx, nx, nx);
+  bmk = new DiffusionCUDAShared2(nd, dims.data());
 #elif defined(CUDA_SHARED3)
-  bmk = new DiffusionCUDAShared3(nx, nx, nx);
+  bmk = new DiffusionCUDAShared3(nd, dims.data());
 #elif defined(CUDA_SHARED4)
-  bmk = new DiffusionCUDAShared4(nx, nx, nx);
+  bmk = new DiffusionCUDAShared4(nd, dims.data());
 #elif defined(CUDA_SHARED5)
-  bmk = new DiffusionCUDAShared5(nx, nx, nx);
+  bmk = new DiffusionCUDAShared5(nd, dims.data());
 #elif defined(CUDA_SHARED6)
-  bmk = new DiffusionCUDAShared6(nx, nx, nx);
+  bmk = new DiffusionCUDAShared6(nd, dims.data());
 #elif defined(CUDA_XY)
   bmk = new DiffusionCUDAXY(nx, nx, nx);
 #elif defined(CUDA_TEMPORAL_BLOCKING)
