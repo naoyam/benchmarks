@@ -91,9 +91,9 @@ __global__ void kernel3d(F1_DECL f1, F2_DECL f2,
       sb[c1+1]= f1[c+e];
     }
     __syncthreads();
-    f2[c] = cc * t2 + cb * t1 + ct * t3
-        + cw * sb[c1-1] + ce * sb[c1+1]
-        + cs * sb[c1-sbx] + cn * sb[c1+sbx];
+   f2[c] = cc * t2 + cw * sb[c1-1] + ce * sb[c1+1]
+      + cs * sb[c1-sbx] + cn * sb[c1+sbx]
+      + cb * t1 + ct * t3;
     c += xy;
     __syncthreads();
   }
@@ -114,9 +114,9 @@ __global__ void kernel3d(F1_DECL f1, F2_DECL f2,
     sb[c1+1]= f1[c+e];
   }
   __syncthreads();
-  f2[c] = cc * t2 + cb * t1 + ct * t3
-      + cw * sb[c1-1] + ce * sb[c1+1]
-      + cs * sb[c1-sbx] + cn * sb[c1+sbx];
+  f2[c] = cc * t2 + cw * sb[c1-1] + ce * sb[c1+1]
+      + cs * sb[c1-sbx] + cn * sb[c1+sbx]
+      + cb * t1 + ct * t3;
   c += xy;
   return;
 }
