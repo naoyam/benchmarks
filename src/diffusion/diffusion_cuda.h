@@ -35,6 +35,10 @@ class DiffusionCUDA: public Baseline {
     return std::string("cuda");
   }
   virtual void Setup();
+  virtual void WarmingUp() {
+    // more iterations of warming up runs
+    RunKernel(50);
+  }
   virtual void RunKernel(int count);
   virtual void FinalizeBenchmark();
   virtual void DisplayResult(int count, float time);
