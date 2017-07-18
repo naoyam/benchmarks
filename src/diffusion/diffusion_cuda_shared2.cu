@@ -28,7 +28,7 @@ __global__ void kernel3d(F1_DECL f1, F2_DECL f2,
   int s = (j == 0)        ? 0 : -nx;
   int n = (j == ny-1)     ? 0 : nx;
 
-#pragma unroll
+  PRAGMA_UNROLL  
   for (; k < k_end-1; ++k) {
     t1 = t2;
     t2 = t3;
@@ -41,7 +41,7 @@ __global__ void kernel3d(F1_DECL f1, F2_DECL f2,
     }
     // west
     if (tid_x == 0) {
-     sb[c1-1]= f1[c+w];
+      sb[c1-1]= f1[c+w];
     } else if (tid_x == blockDim.x-1) {
       sb[c1+1]= f1[c+e];
     }

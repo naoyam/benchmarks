@@ -22,6 +22,24 @@
 #define OFFSET3D(i, j, k, nx, ny) \
   ((i) + (j) * (nx) + (k) * (nx) * (ny))
 
+#define STRINGIFY(x) #x
+#ifndef UNROLL
+//#define PRAGMA_UNROLL(x)
+#define PRAGMA_UNROLL
+#elif UNROLL == 0
+//#define PRAGMA_UNROLL(x) _Pragma("unroll")
+#define PRAGMA_UNROLL _Pragma("unroll")
+#elif UNROLL > 0
+#define PRAGMA_UNROLL__(x, y) STRINGIFY(x y)
+#define PRAGMA_UNROLL_(x) PRAGMA_UNROLL__(unroll, x)
+//#define PRAGMA_UNROLL(x) _Pragma(PRAGMA_UNROLL_(x))
+#define PRAGMA_UNROLL _Pragma(PRAGMA_UNROLL_(UNROLL))
+#else
+#error Invalid macro definition
+#endif
+
+
+
 namespace diffusion {
 
 inline

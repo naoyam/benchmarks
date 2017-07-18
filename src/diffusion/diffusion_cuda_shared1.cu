@@ -31,7 +31,7 @@ __global__ void kernel3d(F1_DECL f1, F2_DECL f2,
   int bn = tid_y == 0 && j != 0;
   int bs = tid_y == blockDim.y-1 && j != ny - 1;
 
-#pragma unroll
+  PRAGMA_UNROLL  
   for (; k < k_end-1; ++k) {
     t1 = t2;
     t2 = t3;
