@@ -4,6 +4,72 @@
 namespace diffusion {
 namespace cuda_shared1 {
 
+__global__ void kernel2d(F1_DECL f1, F2_DECL f2,
+                         int nx, int ny,
+                         REAL ce, REAL cw, REAL cn, REAL cs,
+                         REAL cc) {
+  const int tid_x = threadIdx.x;
+  const int tid_y = threadIdx.y;
+  const int i = blockDim.x * blockIdx.x + tid_x;
+  const int j = blockDim.y * blockIdx.y + tid_y;
+  extern __shared__ REAL sb[];
+  // offset in the global memory
+  int offset_g = OFFSET2D(i, j, nx);
+  // offset in the shared memory
+  const int offset_s = OFFSET2D(tid_x, tid_y, blockDim.x);
+  REAL fc = f1[offset_g];
+  sb[offset_s] = fc;
+  __syncthreads();
+  // load each neighbor
+  REAL fw;
+  if (i == 0) {
+    // global boundary
+    fw = fc;
+  } else if (tid_x == 0) {
+    // block boundary. Not loaded to the shared memory of this thread
+    // block, so needs to access global memory
+    fw = f1[offset_g-1];
+  } else {
+    // already loaded by neighbor thread
+    fw = sb[offset_s-1];
+  }
+  REAL fe;
+  if (i == nx - 1) {
+    // global boundary
+    fe = fc;
+  } else if (tid_x == blockDim.x - 1) {
+    // block boundary
+    fe = f1[offset_g+1];
+  } else {
+    fe = sb[offset_s+1];
+  }
+  REAL fs;
+  if (j == 0) {
+    // global boundary
+    fs = fc;
+  } else if (tid_y == 0) {
+    // block boundary
+    fs = f1[offset_g-nx];
+  } else {
+    fs = sb[offset_s-blockDim.x];
+  }
+  REAL fn;
+  if (j == ny - 1) {
+    // global boundary
+    fn = fc;
+  } else if (tid_y == blockDim.y - 1) {
+    // block boundary
+    fn = f1[offset_g+nx];
+  } else {
+    fn = sb[offset_s+blockDim.x];
+  }
+  REAL t = cc * fc + cw * fw + ce * fe + cs * fs 
+      + cn * fn;
+  f2[offset_g] = t;
+  return;
+}
+
+
 __global__ void kernel3d(F1_DECL f1, F2_DECL f2,
                          int nx, int ny, int nz,
                          REAL ce, REAL cw, REAL cn, REAL cs,
@@ -17,8 +83,10 @@ __global__ void kernel3d(F1_DECL f1, F2_DECL f2,
   const int block_z = nz / gridDim.z;
   int k = block_z * blockIdx.z;
   const int k_end = k + block_z;
-  int c = i + j * nx + k * xy;
-  const int c1 = tid_x + tid_y * blockDim.x;
+  // offset in the global memory  
+  int c = OFFSET3D(i, j, k, nx, ny);
+  // offset in the shared memory
+  const int c1 = OFFSET2D(tid_x, tid_y, blockDim.x);
   REAL t1, t2, t3;
   t3 = f1[c];
   t2 = (k == 0) ? t3 : f1[c-xy];
@@ -79,13 +147,20 @@ void DiffusionCUDAShared1::RunKernel(int count) {
   FORCE_CHECK_CUDA(cudaMemcpy(f1_d_, f1_, s, cudaMemcpyHostToDevice));
 
   dim3 block_dim(block_x_, block_y_, 1);
-  dim3 grid_dim(nx_ / block_x_, ny_ / block_y_, grid_z_);
+  dim3 grid_dim(nx_ / block_x_, ny_ / block_y_);
+  if (ndim_ == 3 ) grid_dim.z = grid_z_;
 
   CHECK_CUDA(cudaEventRecord(ev1_));
   for (int i = 0; i < count; ++i) {
-    cuda_shared1::kernel3d<<<grid_dim, block_dim,
-        block_x_ * block_y_ * sizeof(REAL)>>>
-        (f1_d_, f2_d_, nx_, ny_, nz_, ce_, cw_, cn_, cs_, ct_, cb_, cc_);
+    if (ndim_ == 2) {
+      cuda_shared1::kernel2d<<<grid_dim, block_dim,
+          block_x_ * block_y_ * sizeof(REAL)>>>
+          (f1_d_, f2_d_, nx_, ny_, ce_, cw_, cn_, cs_, cc_);
+    } else if (ndim_ == 3) {
+      cuda_shared1::kernel3d<<<grid_dim, block_dim,
+          block_x_ * block_y_ * sizeof(REAL)>>>
+          (f1_d_, f2_d_, nx_, ny_, nz_, ce_, cw_, cn_, cs_, ct_, cb_, cc_);
+    }
     REAL *t = f1_d_;
     f1_d_ = f2_d_;
     f2_d_ = t;
