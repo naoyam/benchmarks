@@ -5,23 +5,9 @@ include $(INCLUDEPATH)common.mk
 SRC = 
 OBJ = $(filter %.o,$(SRC:%.cc=%.o)) $(filter %.o,$(SRC:%.c=%.o))
 
-EXE = diffusion_baseline diffusion_openmp diffusion_cuda
+EXE = diffusion_baseline 
 
-	# diffusion_openmp_temporal_blocking \
-	# diffusion_cuda_zblock \
-	# diffusion_cuda_opt0 \
-	# diffusion_cuda_opt1 \
-	# diffusion_cuda_opt2 \
-	# diffusion_cuda_opt3 \
-	# diffusion_cuda_shared \
-	# diffusion_cuda_shared1 \
-	# diffusion_cuda_shared2 \
-	# diffusion_cuda_shared3 \
-	# diffusion_cuda_temporal_blocking \
-	# diffusion_mic \
-	# diffusion_fortran \
-	# diffusion_fortran_acc
-
+# Options
 ifneq ($(BLOCK_X),)
 	CXXFLAGS += -DBLOCK_X=$(BLOCK_X)
 	NVCC_CFLAGS += -DBLOCK_X=$(BLOCK_X)
@@ -37,6 +23,12 @@ endif
 ifneq ($(UNROLL),)
 	CXXFLAGS += -DUNROLL=$(UNROLL)
 	NVCC_CFLAGS += -DUNROLL=$(UNROLL)
+endif	
+ifneq ($(DLCM),)
+	NVCC_CFLAGS += -Xptxas -dlcm=$(DLCM)
+endif	
+ifneq ($(ARCH),)
+	NVCC_ARCH = -arch $(ARCH)
 endif	
 
 ##################################################
@@ -85,7 +77,6 @@ main_openmp.o: main.cc
 cuda: diffusion_cuda \
 	diffusion_cuda_zblock \
 	diffusion_cuda_roc \
-	diffusion_cuda_l1 \
 	diffusion_cuda_opt1 \
 	diffusion_cuda_opt2 \
 	diffusion_cuda_shared1 \
@@ -114,14 +105,6 @@ diffusion_cuda_roc: $(OBJ) main_cuda_roc.o diffusion_cuda_roc.o diffusion_cuda.o
 diffusion_cuda_roc.o: diffusion_cuda_roc.h
 main_cuda_roc.o: main.cc diffusion_cuda.h diffusion_cuda_roc.h
 	$(CXX) -o $@ -c $< $(CXXFLAGS) -DCUDA_ROC -I$(CUDA_INC)
-########################################
-# diffusion_cuda_cache
-diffusion_cuda_l1: $(OBJ) main_cuda_l1.o diffusion_cuda_l1.o
-	$(CXX) -o $@ $^ $(LDFLAGS) $(CUDA_LDFLAGS)
-diffusion_cuda_l1.cu: diffusion_cuda.cu
-diffusion_cuda_l1.o: NVCC_CFLAGS += -Xptxas -dlcm=ca
-main_cuda_l1.o: main.cc diffusion_cuda.h 
-	$(CXX) -o $@ -c $< $(CXXFLAGS) -DCUDA_L1 -I$(CUDA_INC)
 ########################################
 # diffusion_cuda_zblock
 diffusion_cuda_zblock: $(OBJ) main_cuda_zblock.o diffusion_cuda.o
