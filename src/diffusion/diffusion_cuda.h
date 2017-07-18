@@ -15,6 +15,10 @@
 #define GRID_Z (4)
 #endif
 
+#define F1_DECL const REAL * __restrict__
+#define F2_DECL REAL * __restrict__
+
+
 namespace diffusion {
 
 class DiffusionCUDA: public Baseline {

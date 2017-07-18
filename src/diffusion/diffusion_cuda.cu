@@ -1,9 +1,6 @@
 #include "diffusion/diffusion_cuda.h"
 #include "common/cuda_util.h"
 
-#include <cuda.h>
-#include <cuda_runtime.h>
-
 namespace diffusion {
 
 namespace cuda_baseline {
@@ -100,7 +97,6 @@ void DiffusionCUDA::RunKernel(int count) {
   }
   CHECK_CUDA(cudaEventRecord(ev2_));
   FORCE_CHECK_CUDA(cudaMemcpy(f1_, f1_d_, s, cudaMemcpyDeviceToHost));
-  FORCE_CHECK_CUDA(cudaDeviceSynchronize());
   return;
 }
 

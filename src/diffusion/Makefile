@@ -34,9 +34,11 @@ ifneq ($(GRID_Z),)
 	CXXFLAGS += -DGRID_Z=$(GRID_Z)
 	NVCC_CFLAGS += -DGRID_Z=$(GRID_Z)
 endif	
-ifneq ($(ENABLE_ROC),)
-	NVCC_CFLAGS += -DENABLE_ROC=$(ENABLE_ROC)
+ifneq ($(UNROLL),)
+	CXXFLAGS += -DUNROLL=$(UNROLL)
+	NVCC_CFLAGS += -DUNROLL=$(UNROLL)
 endif	
+
 ##################################################
 
 all: $(EXE)
@@ -127,31 +129,19 @@ diffusion_cuda_zblock: $(OBJ) main_cuda_zblock.o diffusion_cuda.o
 main_cuda_zblock.o: main.cc diffusion_cuda.h
 	$(CXX) -o $@ -c $< $(CXXFLAGS) -DCUDA_ZBLOCK -I$(CUDA_INC)
 ########################################
-# diffusion_cuda_opt0
-diffusion_cuda_opt0: $(OBJ) main_cuda_opt0.o diffusion_cuda.o
-	$(CXX) -o $@ $^ $(LDFLAGS) $(CUDA_LDFLAGS)
-main_cuda_opt0.o: main.cc diffusion_cuda.h
-	$(CXX) -o $@ -c $< $(CXXFLAGS) -DCUDA_OPT0 -I$(CUDA_INC)
-########################################
 # diffusion_cuda_opt1
-diffusion_cuda_opt1: $(OBJ) main_cuda_opt1.o diffusion_cuda.o
+diffusion_cuda_opt1: $(OBJ) main_cuda_opt1.o diffusion_cuda.o \
+	diffusion_cuda_opt.o
 	$(CXX) -o $@ $^ $(LDFLAGS) $(CUDA_LDFLAGS)
 main_cuda_opt1.o: main.cc diffusion_cuda.h
 	$(CXX) -o $@ -c $< $(CXXFLAGS) -DCUDA_OPT1 -I$(CUDA_INC)
 ########################################
 # diffusion_cuda_opt2
-diffusion_cuda_opt2: $(OBJ) main_cuda_opt2.o diffusion_cuda.o
+diffusion_cuda_opt2: $(OBJ) main_cuda_opt2.o diffusion_cuda.o \
+	diffusion_cuda_opt.o
 	$(CXX) -o $@ $^ $(LDFLAGS) $(CUDA_LDFLAGS)
 main_cuda_opt2.o: main.cc diffusion_cuda.h
 	$(CXX) -o $@ -c $< $(CXXFLAGS) -DCUDA_OPT2 -I$(CUDA_INC)
-########################################
-# diffusion_cuda_opt3
-diffusion_cuda_opt3: $(OBJ) main_cuda_opt3.o diffusion_cuda.o \
-	diffusion_cuda_opt3.o
-	$(CXX) -o $@ $^ $(LDFLAGS) $(CUDA_LDFLAGS)
-main_cuda_opt3.o: main.cc diffusion_cuda.h
-	$(CXX) -o $@ -c $< $(CXXFLAGS) -DCUDA_OPT3 -I$(CUDA_INC)
-diffusion_cuda_opt3.o: diffusion_cuda.h
 ########################################
 # diffusion_cuda_shared
 diffusion_cuda_shared: $(OBJ) main_cuda_shared.o diffusion_cuda.o \

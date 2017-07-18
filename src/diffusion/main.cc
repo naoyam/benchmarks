@@ -28,6 +28,9 @@ using std::make_pair;
 #ifdef CUDA_ROC
 #include "diffusion/diffusion_cuda_roc.h"
 #endif
+#if defined(CUDA_OPT1) || defined(CUDA_OPT2)
+#include "diffusion/diffusion_cuda_opt.h"
+#endif
 
 #if 0
 #if defined(OPENMP_TEMPORAL_BLOCKING)
@@ -148,12 +151,10 @@ int main(int argc, char *argv[]) {
   bmk = new DiffusionCUDAROC(nd, dims.data());
 #elif defined(CUDA_ZBLOCK)
   bmk = new DiffusionCUDAZBlock(nx, nx, nx);
-#elif defined(CUDA_OPT0)
-  bmk = new DiffusionCUDAOpt0(nx, nx, nx);
 #elif defined(CUDA_OPT1)
-  bmk = new DiffusionCUDAOpt1(nx, nx, nx);
+  bmk = new DiffusionCUDAOpt1(nd, dims.data());
 #elif defined(CUDA_OPT2)
-  bmk = new DiffusionCUDAOpt2(nx, nx, nx);
+  bmk = new DiffusionCUDAOpt2(nd, dims.data());
 #elif defined(CUDA_OPT3)
   bmk = new DiffusionCUDAOpt3(nx, nx, nx);
 #elif defined(CUDA_SHARED)
