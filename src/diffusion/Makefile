@@ -83,14 +83,12 @@ main_openmp.o: main.cc
 ##################################################
 .PHONY: cuda
 cuda: diffusion_cuda \
+	diffusion_cuda_zblock \
 	diffusion_cuda_roc \
-	diffusion_cuda_l1
+	diffusion_cuda_l1 \
+	diffusion_cuda_opt1 \
+	diffusion_cuda_opt2
 
-# diffusion_cuda_zblock \
-# 	diffusion_cuda_opt0 \
-# 	diffusion_cuda_opt1 \
-# 	diffusion_cuda_opt2 \
-# 	diffusion_cuda_opt3 \
 # 	diffusion_cuda_shared \
 # 	diffusion_cuda_shared1 \
 # 	diffusion_cuda_shared2 \

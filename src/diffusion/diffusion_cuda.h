@@ -47,18 +47,20 @@ class DiffusionCUDA: public Baseline {
 
 };
 
-#if 0
+
 class DiffusionCUDAZBlock: public DiffusionCUDA {
  public:
-  DiffusionCUDAZBlock(int nx, int ny, int nz):
-      DiffusionCUDA(nx, ny, nz) {}
+  DiffusionCUDAZBlock(int nd, const int *dims):
+      DiffusionCUDA(nd, dims) {
+    assert(nd == 3);
+  }
   virtual std::string GetName() const {
     return std::string("cuda_zblock");
   }
   virtual void InitializeBenchmark();  
   virtual void RunKernel(int count);
 };
-
+#if 0
 class DiffusionCUDAOpt0: public DiffusionCUDA {
  public:
   DiffusionCUDAOpt0(int nx, int ny, int nz):

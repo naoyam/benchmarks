@@ -22,7 +22,7 @@ using std::make_pair;
 #include "diffusion/diffusion_openmp.h"
 #endif
 
-#if defined(CUDA) || defined(CUDA_L1)
+#if defined(CUDA) || defined(CUDA_ZBLOCK) || defined(CUDA_L1)
 #include "diffusion/diffusion_cuda.h"
 #endif
 #ifdef CUDA_ROC
@@ -150,7 +150,7 @@ int main(int argc, char *argv[]) {
 #elif defined(CUDA_ROC)
   bmk = new DiffusionCUDAROC(nd, dims.data());
 #elif defined(CUDA_ZBLOCK)
-  bmk = new DiffusionCUDAZBlock(nx, nx, nx);
+  bmk = new DiffusionCUDAZBlock(nd, dims.data());
 #elif defined(CUDA_OPT1)
   bmk = new DiffusionCUDAOpt1(nd, dims.data());
 #elif defined(CUDA_OPT2)
