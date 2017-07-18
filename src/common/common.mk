@@ -35,7 +35,7 @@ NVCC = nvcc
 NVCC_CFLAGS = --std=c++11 -m64 -I.. -Xcompiler -Wall -Xptxas -v # -keep
 NVCC_ARCH = -arch sm_35
 ifneq ($(DEBUG),)
-NVCC_CFLAGS += -g -G -DDEBUG
+NVCC_CFLAGS += -g -G -DDEBUG -lineinfo
 else
 NVCC_CFLAGS += -O3
 endif
