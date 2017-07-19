@@ -83,7 +83,8 @@ cuda: diffusion_cuda       \
 	diffusion_cuda_shared2 \
 	diffusion_cuda_shared3 \
 	diffusion_cuda_shared4 \
-	diffusion_cuda_shared5
+	diffusion_cuda_shared5 \
+	diffusion_cuda_shared6
 ########################################
 # diffusion_cuda (baseline)
 diffusion_cuda: $(OBJ) main_cuda.o diffusion_cuda.o

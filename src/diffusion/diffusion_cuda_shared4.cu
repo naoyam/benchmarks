@@ -6,7 +6,6 @@ namespace diffusion {
 namespace cuda_shared4 {
 
 #define GET(x) (x)
-#define SHIFT3(x, y, z) x = y; y = z
 
 #define diffusion_backward()                                            \
   do {                                                                  \

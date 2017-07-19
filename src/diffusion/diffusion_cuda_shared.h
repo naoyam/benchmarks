@@ -3,6 +3,9 @@
 
 #include "diffusion/diffusion_cuda.h"
 
+#define SHIFT3(x, y, z) x = y; y = z
+#define SHIFT4(x, y, z, k) x = y; y = z; z = k
+
 namespace diffusion {
 
 class DiffusionCUDAShared1: public DiffusionCUDA {
@@ -81,6 +84,23 @@ class DiffusionCUDAShared5: public DiffusionCUDA {
   }
   virtual std::string GetDescription() const {
     return std::string("2-stage temporal blocking w z-blocking");
+  }
+  virtual void Setup();  
+  virtual void RunKernel(int count);
+};
+
+class DiffusionCUDAShared6: public DiffusionCUDA {
+ public:
+  DiffusionCUDAShared6(int nd, const int *dims):
+      DiffusionCUDA(nd, dims) {
+    // 2D is not yet implemented 
+    assert(nd == 3);
+  }
+  virtual std::string GetName() const {
+    return std::string("cuda_shared6");
+  }
+  virtual std::string GetDescription() const {
+    return std::string("cuda_shared5 + separate warp for loading diagonal points");
   }
   virtual void Setup();  
   virtual void RunKernel(int count);

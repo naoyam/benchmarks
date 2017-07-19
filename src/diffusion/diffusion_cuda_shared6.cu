@@ -3,7 +3,7 @@
 #include "common/cuda_util.h"
 
 namespace diffusion {
-namespace cuda_shared5 {
+namespace cuda_shared6 {
 
 #define GET(x) (x)
 
@@ -18,7 +18,7 @@ namespace cuda_shared5 {
 
 // Temporal blocking
 // z blocking
-// the diagonal points are loaded by the vertical warp
+// sperate warp for diagonal points
 __global__ void kernel3d(F1_DECL f1, F2_DECL f2,
                          int nx, int ny, int nz,
                          REAL ce, REAL cw, REAL cn, REAL cs,
@@ -204,11 +204,11 @@ __global__ void kernel3d(F1_DECL f1, F2_DECL f2,
       SHIFT3(s1, s2, s3);
       diffusion_backward();
     }
-  } else {
+  } else if (tidx < 32 && tidy == BLOCK_Y + 1) {
     // horizontal halo
     int xoffset = (tidx & 1) + ((tidx & 2) >> 1) * (BLOCK_X + 2);
-    int yoffset = tidx >> 2;
-    yoffset = (yoffset >= (BLOCK_Y + 2)) ? BLOCK_Y+1 : yoffset;
+    int yoffset = (tidx >> 2) + 1;
+    yoffset = (yoffset >= (BLOCK_Y+1)) ? BLOCK_Y : yoffset;
     i = BLOCK_X * blockIdx.x - 2 + xoffset;
     i = (i < 0) ? 0 : i;
     i = (i >= nx) ? nx - 1 : i;
@@ -216,17 +216,18 @@ __global__ void kernel3d(F1_DECL f1, F2_DECL f2,
     j = (j < 0) ? 0 : j;      // max(j, 0)
     j = (j >= ny) ? ny - 1 : j; // min(j, ny-1)
 
-    int s = (yoffset == 0)  ? 0 : -sbx;
-    int n = (yoffset == BLOCK_Y+1) ? 0 : sbx;
+    int s = -sbx;
+    int n = sbx;
     int w = (xoffset == 0) ? 0 : -1;
     int e = (xoffset == sbx-1) ? 0 : 1;
     
     p = i + j * nx + k * xy;
     ps = xoffset + yoffset * sbx;
-    
-    float t2 = GET(f1[p]);
-    float t1 = (k == 0) ? t2 : GET(f1[p-xy]);
-    float t3 = (k < nz-1) ? GET(f1[p+xy]) : t2;
+
+    float t2 = LDG(f1+p);
+    float t1 = (k == 0) ? t2 : LDG(f1+p-xy);
+    float t3 = (k < nz-1) ? LDG(f1+p+xy) : t2;
+    float t4 = (k < nz-2) ? LDG(f1+p+xy*2) : t3;
     sb[ps] = t2;
     __syncthreads();
     float s2, s3;
@@ -239,8 +240,8 @@ __global__ void kernel3d(F1_DECL f1, F2_DECL f2,
     ++k;
 
     if (k != 1) {
-      SHIFT3(t1, t2, t3);
-      t3 = GET(f1[p+xy]);
+      SHIFT4(t1, t2, t3, t4);
+      t4 = LDG(f1+p+xy*2);
       sb[ps] = t2;
       s2 = s3;
       __syncthreads();
@@ -252,10 +253,10 @@ __global__ void kernel3d(F1_DECL f1, F2_DECL f2,
       p += xy;
       ++k;
     }
-
-    for (; k < k_end-1; ++k) {
-      SHIFT3(t1, t2, t3);
-      t3 = GET(f1[p+xy]);
+   #pragma unroll  
+    for (; k < k_end-2; ++k) {
+      SHIFT4(t1, t2, t3, t4);
+      t4 = LDG(f1+p+xy*2);
       sb[ps] = t2;
       s2 = s3;
       __syncthreads();
@@ -270,8 +271,23 @@ __global__ void kernel3d(F1_DECL f1, F2_DECL f2,
       p += xy;      
     }
 
-    SHIFT3(t1, t2, t3);
-    t3 = (k < nz-1) ? GET(f1[p+xy]) : t3;      
+    SHIFT4(t1, t2, t3, t4);
+    t4 = (k < nz-2) ? LDG(f1+p+xy*2) : t4;
+    sb[ps] = t2;
+    s2 = s3;
+    __syncthreads();
+    s3 = cc * t2
+        + cw * sb[ps+w] + ce * sb[ps+e]
+        + cs * sb[ps+s] + cn * sb[ps+n]
+        + cb*t1 + ct*t3;
+    __syncthreads();
+    sb[ps] = s2;
+    __syncthreads();
+    __syncthreads();      
+    p += xy;      
+    ++k;
+
+    SHIFT4(t1, t2, t3, t4);
     sb[ps] = t2;
     s2 = s3;
     __syncthreads();
@@ -291,22 +307,101 @@ __global__ void kernel3d(F1_DECL f1, F2_DECL f2,
       sb[ps] = s2;
       __syncthreads();
     }
+  } else {
+    const int tidx2 = tidx & 31;
+    // 2nd warp
+    int xoffset = 1 + (tidx & 1) * (BLOCK_X + 1);
+    int yoffset = ((tidx & 2) >> 1) * (BLOCK_Y + 1);
+    i = BLOCK_X * blockIdx.x - 2 + xoffset;
+    i = (i < 0) ? 0 : i;
+    i = (i >= nx) ? nx - 1 : i;
+    j = BLOCK_Y * blockIdx.y -1 + yoffset;
+    j = (j < 0) ? 0 : j;      // max(j, 0)
+    j = (j >= ny) ? ny - 1 : j; // min(j, ny-1)
+
+    p = i + j * nx + k * xy;
+    ps = xoffset + yoffset * sbx;
+
+    float t2, t3, t4;
+    //bool active = tidx2 < 4;
+    const bool active = 1;
+
+    if (active) {
+      t2 = LDG(f1+p);
+      t3 = LDG(f1+p+xy);
+      t4 = LDG(f1+p+xy*2);      
+      sb[ps] = t2;
+    }
+    __syncthreads();
+    __syncthreads();    
+    p += xy;
+    ++k;
+
+    if (k != 1) {
+      SHIFT3(t2, t3, t4);
+      if (active) {
+        t4 = LDG(f1+p+xy*2);
+        sb[ps] = t2;
+      }
+      __syncthreads();
+      __syncthreads();
+      p += xy;
+      ++k;
+    }
+   #pragma unroll  
+    for (; k < k_end-2; ++k) {
+      SHIFT3(t2, t3, t4);
+      if (active) {
+        t4 = LDG(f1+p+xy*2);      
+        sb[ps] = t2;
+      }
+      __syncthreads();
+      __syncthreads();
+      __syncthreads();
+      __syncthreads();      
+      p += xy;      
+    }
+
+    SHIFT3(t2, t3, t4);
+    if (active) {
+      sb[ps] = t2;
+    }
+    __syncthreads();
+    __syncthreads();
+    __syncthreads();
+    __syncthreads();      
+    p += xy;
+    ++k;
+
+    t2 = t3;
+    if (active) {
+      sb[ps] = t2;
+    }
+    __syncthreads();
+    __syncthreads();
+    __syncthreads();
+    __syncthreads();      
+    p += xy;      
+    
+    if (k == nz) {
+      __syncthreads();
+    }
   }
   return;
 }
 
-} // namespace cuda_shared5
+} // namespace cuda_shared6
 
-void DiffusionCUDAShared5::RunKernel(int count) {
+void DiffusionCUDAShared6::RunKernel(int count) {
   size_t s = sizeof(REAL) * nx_ * ny_ * nz_;  
   FORCE_CHECK_CUDA(cudaMemcpy(f1_d_, f1_, s, cudaMemcpyHostToDevice));
   assert(count % 2 == 0);
   //dim3 block_dim(BLOCK_X * BLOCK_Y + 32); // + 1 warp
-  dim3 block_dim(BLOCK_X * (BLOCK_Y+2) + 32);
+  dim3 block_dim(BLOCK_X * (BLOCK_Y+2) + (32*2));
   dim3 grid_dim(nx_ / BLOCK_X, ny_ / BLOCK_Y, grid_z_);
   CHECK_CUDA(cudaEventRecord(ev1_));
   for (int i = 0; i < count; i+=2) {
-    cuda_shared5::kernel3d<<<grid_dim, block_dim,
+    cuda_shared6::kernel3d<<<grid_dim, block_dim,
         (BLOCK_X+4)*(BLOCK_Y+2)*sizeof(float)>>>
         (f1_d_, f2_d_, nx_, ny_, nz_, ce_, cw_, cn_, cs_, ct_, cb_, cc_);
     REAL *t = f1_d_;
@@ -318,11 +413,11 @@ void DiffusionCUDAShared5::RunKernel(int count) {
   return;
 }
 
-void DiffusionCUDAShared5::Setup() {
+void DiffusionCUDAShared6::Setup() {
   DiffusionCUDA::Setup();
-  FORCE_CHECK_CUDA(cudaFuncSetCacheConfig(cuda_shared5::kernel3d,
+  FORCE_CHECK_CUDA(cudaFuncSetCacheConfig(cuda_shared6::kernel3d,
                                           cudaFuncCachePreferShared));
 }
 
-}
+} // namespace diffusion
 
