@@ -52,6 +52,40 @@ class DiffusionCUDAShared3: public DiffusionCUDA {
   virtual void RunKernel(int count);
 };
 
+class DiffusionCUDAShared4: public DiffusionCUDA {
+ public:
+  DiffusionCUDAShared4(int nd, const int *dims):
+      DiffusionCUDA(nd, dims) {
+    // 2D is not yet implemented 
+    assert(nd == 3);
+  }
+  virtual std::string GetName() const {
+    return std::string("cuda_shared4");
+  }
+  virtual std::string GetDescription() const {
+    return std::string("2-stage temporal blocking w/o z-blocking");
+  }
+  virtual void Setup();  
+  virtual void RunKernel(int count);
+};
+
+class DiffusionCUDAShared5: public DiffusionCUDA {
+ public:
+  DiffusionCUDAShared5(int nd, const int *dims):
+      DiffusionCUDA(nd, dims) {
+    // 2D is not yet implemented 
+    assert(nd == 3);
+  }
+  virtual std::string GetName() const {
+    return std::string("cuda_shared5");
+  }
+  virtual std::string GetDescription() const {
+    return std::string("2-stage temporal blocking w z-blocking");
+  }
+  virtual void Setup();  
+  virtual void RunKernel(int count);
+};
+
 } // namespace diffusion
 
 #endif // DIFFUSION_DIFFUSION_CUDA_OPT_H_

@@ -74,24 +74,16 @@ main_openmp.o: main.cc
 # diffusion_openmp_temporal_blocking.o: CXXFLAGS += $(OPENMP_CFLAGS)
 ##################################################
 .PHONY: cuda
-cuda: diffusion_cuda \
-	diffusion_cuda_zblock \
-	diffusion_cuda_roc \
-	diffusion_cuda_opt1 \
-	diffusion_cuda_opt2 \
+cuda: diffusion_cuda       \
+	diffusion_cuda_zblock  \
+	diffusion_cuda_roc     \
+	diffusion_cuda_opt1    \
+	diffusion_cuda_opt2    \
 	diffusion_cuda_shared1 \
 	diffusion_cuda_shared2 \
-	diffusion_cuda_shared3
-
-# 	diffusion_cuda_shared \
-# 	diffusion_cuda_shared1 \
-# 	diffusion_cuda_shared2 \
-# 	diffusion_cuda_shared3 \
-# 	diffusion_cuda_shared4 \
-# 	diffusion_cuda_shared5 \
-# 	diffusion_cuda_shared6 \
-# 	diffusion_cuda_xy \
-# 	diffusion_cuda_temporal_blocking
+	diffusion_cuda_shared3 \
+	diffusion_cuda_shared4 \
+	diffusion_cuda_shared5
 ########################################
 # diffusion_cuda (baseline)
 diffusion_cuda: $(OBJ) main_cuda.o diffusion_cuda.o
@@ -155,7 +147,7 @@ diffusion_cuda_shared3.o: diffusion_cuda.h diffusion_cuda_shared.h
 ########################################
 # diffusion_cuda_shared4
 diffusion_cuda_shared4: $(OBJ) main_cuda_shared4.o diffusion_cuda.o \
-	diffusion_cuda_shared.o diffusion_cuda_shared4.o
+	diffusion_cuda_shared4.o
 	$(CXX) -o $@ $^ $(LDFLAGS) $(CUDA_LDFLAGS)
 main_cuda_shared4.o: main.cc diffusion_cuda.h
 	$(CXX) -o $@ -c $< $(CXXFLAGS) -DCUDA_SHARED4 -I$(CUDA_INC)
@@ -163,7 +155,7 @@ diffusion_cuda_shared4.o: diffusion_cuda.h
 ########################################
 # diffusion_cuda_shared5
 diffusion_cuda_shared5: $(OBJ) main_cuda_shared5.o diffusion_cuda.o \
-	diffusion_cuda_shared.o diffusion_cuda_shared5.o
+	diffusion_cuda_shared5.o
 	$(CXX) -o $@ $^ $(LDFLAGS) $(CUDA_LDFLAGS)
 main_cuda_shared5.o: main.cc diffusion_cuda.h
 	$(CXX) -o $@ -c $< $(CXXFLAGS) -DCUDA_SHARED5 -I$(CUDA_INC)
@@ -171,7 +163,7 @@ diffusion_cuda_shared5.o: diffusion_cuda.h
 ########################################
 # diffusion_cuda_shared6
 diffusion_cuda_shared6: $(OBJ) main_cuda_shared6.o diffusion_cuda.o \
-	diffusion_cuda_shared.o diffusion_cuda_shared6.o
+	diffusion_cuda_shared6.o
 	$(CXX) -o $@ $^ $(LDFLAGS) $(CUDA_LDFLAGS)
 main_cuda_shared6.o: main.cc diffusion_cuda.h
 	$(CXX) -o $@ -c $< $(CXXFLAGS) -DCUDA_SHARED6 -I$(CUDA_INC)
@@ -189,6 +181,7 @@ diffusion_cuda_temporal_blocking: $(OBJ) main_cuda_temporal_blocking.o diffusion
 	$(CXX) -o $@ $^ $(LDFLAGS) $(CUDA_LDFLAGS)
 main_cuda_temporal_blocking.o: main.cc diffusion_cuda_temporal_blocking.h
 	$(CXX) -o $@ -c $< $(CXXFLAGS) -DCUDA_TEMPORAL_BLOCKING -I$(CUDA_INC)
+##################################################
 ##################################################
 # Fortran OpenACC
 # .PHONY: fortran-acc
