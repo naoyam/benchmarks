@@ -31,7 +31,8 @@ using std::make_pair;
 #if defined(CUDA_OPT1) || defined(CUDA_OPT2)
 #include "diffusion/diffusion_cuda_opt.h"
 #endif
-#if defined(CUDA_SHARED1) || defined(CUDA_SHARED2)
+#if defined(CUDA_SHARED1) || defined(CUDA_SHARED2) \
+  || defined(CUDA_SHARED3)
 #include "diffusion/diffusion_cuda_shared.h"
 #endif
 

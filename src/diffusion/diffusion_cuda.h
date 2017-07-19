@@ -18,6 +18,12 @@
 #define F1_DECL const REAL * __restrict__
 #define F2_DECL REAL * __restrict__
 
+#ifdef USE_LDG
+#define LDG(x) __ldg(x)
+#else
+#define LDG(x) (*(x))
+#endif
+
 
 namespace diffusion {
 
