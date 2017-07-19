@@ -13,7 +13,10 @@ class DiffusionOpenMP: public Baseline {
   virtual std::string GetName() const {
     return std::string("openmp");
   }
-  virtual void InitializeBenchmark();
+  virtual std::string GetDescription() const {
+    return std::string("OpenMP parallel version");
+  }
+  virtual void InitializeInput();
   virtual void RunKernel(int count);
 
  protected:

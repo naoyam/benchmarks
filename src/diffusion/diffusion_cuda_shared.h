@@ -13,6 +13,9 @@ class DiffusionCUDAShared1: public DiffusionCUDA {
   virtual std::string GetName() const {
     return std::string("cuda_shared1");
   }
+  virtual std::string GetName() const {
+    return std::string("cuda_opt1 + shared memory caching with w/o halo");
+  }
   virtual void Setup();  
   virtual void RunKernel(int count);
 };
@@ -24,6 +27,9 @@ class DiffusionCUDAShared2: public DiffusionCUDA {
   }
   virtual std::string GetName() const {
     return std::string("cuda_shared2");
+  }
+  virtual std::string GetName() const {
+    return std::string("cuda_opt1 + shared memory caching with w/ halo");
   }
   virtual void Setup();  
   virtual void RunKernel(int count);

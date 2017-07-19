@@ -19,6 +19,10 @@ class Baseline: public Diffusion {
     return std::string("baseline") + std::to_string(ndim_) + std::string("d");
   }
 
+  virtual std::string GetDescription() const {
+    return std::string("baseline serial implementation");
+  }
+  
   virtual void Setup() {
     f1_ = (REAL*)malloc(sizeof(REAL) * nx_ * ny_ * nz_);
     assert(f1_);    

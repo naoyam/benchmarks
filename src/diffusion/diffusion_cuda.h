@@ -34,6 +34,9 @@ class DiffusionCUDA: public Baseline {
   virtual std::string GetName() const {
     return std::string("cuda");
   }
+  virtual std::string GetDescription() const {
+    return std::string("baseline CUDA implementation");
+  }
   virtual void Setup();
   virtual void WarmingUp() {
     // more iterations of warming up runs
@@ -51,7 +54,6 @@ class DiffusionCUDA: public Baseline {
 
 };
 
-
 class DiffusionCUDAZBlock: public DiffusionCUDA {
  public:
   DiffusionCUDAZBlock(int nd, const int *dims):
@@ -61,166 +63,13 @@ class DiffusionCUDAZBlock: public DiffusionCUDA {
   virtual std::string GetName() const {
     return std::string("cuda_zblock");
   }
+  virtual std::string GetDescription() const {
+    return std::string("baseline + z-direction blocking");
+  }
   virtual void Setup();  
   virtual void RunKernel(int count);
 };
-#if 0
-class DiffusionCUDAOpt0: public DiffusionCUDA {
- public:
-  DiffusionCUDAOpt0(int nx, int ny, int nz):
-      DiffusionCUDA(nx, ny, nz) {}
-  virtual std::string GetName() const {
-    return std::string("cuda_opt0");
-  }
-  virtual void InitializeBenchmark();  
-  virtual void RunKernel(int count);
-};
 
-class DiffusionCUDAOpt1: public DiffusionCUDA {
- public:
-  DiffusionCUDAOpt1(int nx, int ny, int nz):
-      DiffusionCUDA(nx, ny, nz) {}
-  virtual std::string GetName() const {
-    return std::string("cuda_opt1");
-  }
-  virtual void InitializeBenchmark();  
-  virtual void RunKernel(int count);
-};
-
-class DiffusionCUDAOpt2: public DiffusionCUDA {
- public:
-  DiffusionCUDAOpt2(int nx, int ny, int nz):
-      DiffusionCUDA(nx, ny, nz) {
-    // block_x_ = 128;    
-    // block_y_ = 2;
-  }
-  virtual std::string GetName() const {
-    return std::string("cuda_opt2");
-  }
-  virtual void InitializeBenchmark();    
-  virtual void RunKernel(int count);
-};
-
-class DiffusionCUDAOpt3: public DiffusionCUDA {
- public:
-  DiffusionCUDAOpt3(int nx, int ny, int nz):
-      DiffusionCUDA(nx, ny, nz) {
-    // block_x_ = 128;    
-    // block_y_ = 2;
-  }
-  virtual std::string GetName() const {
-    return std::string("cuda_opt3");
-  }
-  virtual void InitializeBenchmark();    
-  virtual void RunKernel(int count);
-};
-
-class DiffusionCUDAXY: public DiffusionCUDA {
- public:
-  DiffusionCUDAXY(int nx, int ny, int nz):
-      DiffusionCUDA(nx, ny, nz) {
-    // block_x_ = 32;    
-    // block_y_ = 2;
-  }
-  virtual std::string GetName() const {
-    return std::string("cuda_xy");
-  }
-  virtual void InitializeBenchmark();    
-  virtual void RunKernel(int count);
-};
-
-class DiffusionCUDAShared: public DiffusionCUDA {
- public:
-  DiffusionCUDAShared(int nx, int ny, int nz):
-      DiffusionCUDA(nx, ny, nz) {
-    // block_x_ = 128;
-    // block_y_ = 2;
-  }
-  virtual std::string GetName() const {
-    return std::string("cuda_shared");
-  }
-  virtual void InitializeBenchmark();    
-  virtual void RunKernel(int count);
-};
-
-class DiffusionCUDAShared1: public DiffusionCUDAShared {
- public:
-  DiffusionCUDAShared1(int nx, int ny, int nz):
-      DiffusionCUDAShared(nx, ny, nz) {
-    // block_x_ = 128;
-    // block_y_ = 2;
-  }
-  virtual std::string GetName() const {
-    return std::string("cuda_shared1");
-  }
-  virtual void InitializeBenchmark();  
-  virtual void RunKernel(int count);
-};
-
-class DiffusionCUDAShared2: public DiffusionCUDAShared {
- public:
-  DiffusionCUDAShared2(int nx, int ny, int nz):
-      DiffusionCUDAShared(nx, ny, nz) {
-    // block_x_ = 128;
-    // block_y_ = 2;
-  }
-  virtual std::string GetName() const {
-    return std::string("cuda_shared2");
-  }
-  virtual void InitializeBenchmark();  
-  virtual void RunKernel(int count);
-};
-
-class DiffusionCUDAShared3: public DiffusionCUDAShared {
- public:
-  DiffusionCUDAShared3(int nx, int ny, int nz):
-      DiffusionCUDAShared(nx, ny, nz) {
-    // block_x_ = 32;
-    // block_y_ = 4;
-  }
-  virtual std::string GetName() const {
-    return std::string("cuda_shared3");
-  }
-  virtual void InitializeBenchmark();  
-  virtual void RunKernel(int count);
-};
-
-class DiffusionCUDAShared4: public DiffusionCUDAShared {
- public:
-  DiffusionCUDAShared4(int nx, int ny, int nz):
-      DiffusionCUDAShared(nx, ny, nz) {
-  }
-  virtual std::string GetName() const {
-    return std::string("cuda_shared4");
-  }
-  virtual void InitializeBenchmark();  
-  virtual void RunKernel(int count);
-};
-
-class DiffusionCUDAShared5: public DiffusionCUDAShared {
- public:
-  DiffusionCUDAShared5(int nx, int ny, int nz):
-      DiffusionCUDAShared(nx, ny, nz) {
-  }
-  virtual std::string GetName() const {
-    return std::string("cuda_shared5");
-  }
-  virtual void InitializeBenchmark();  
-  virtual void RunKernel(int count);
-};
-
-class DiffusionCUDAShared6: public DiffusionCUDAShared {
- public:
-  DiffusionCUDAShared6(int nx, int ny, int nz):
-      DiffusionCUDAShared(nx, ny, nz) {
-  }
-  virtual std::string GetName() const {
-    return std::string("cuda_shared6");
-  }
-  virtual void InitializeBenchmark();  
-  virtual void RunKernel(int count);
-};
-#endif
-}
+} // namespace diffusion
 
 #endif /* DIFFUSION_DIFFUSION_CUDA_H_ */

@@ -16,6 +16,9 @@ class DiffusionCUDAOpt1: public DiffusionCUDA {
   virtual std::string GetName() const {
     return std::string("cuda_opt1");
   }
+  virtual std::string GetDescription() const {
+    return std::string("cuda_zblock + loop peeling, register blocking, and unrolling");
+  }
   virtual void Setup();  
   virtual void RunKernel(int count);
 };
@@ -32,6 +35,9 @@ class DiffusionCUDAOpt2: public DiffusionCUDA {
   }
   virtual std::string GetName() const {
     return std::string("cuda_opt2");
+  }
+  virtual std::string GetDescription() const {
+    return std::string("cuda_opt1 + prefetching");
   }
   virtual void Setup();    
   virtual void RunKernel(int count);

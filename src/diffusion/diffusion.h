@@ -105,9 +105,11 @@ class Diffusion {
   }
   
   virtual std::string GetName() const = 0;
+  virtual std::string GetDescription() const = 0;  
   void RunBenchmark(int count, bool dump) {
     std::cout << "*** Diffusion Benchmark ***\n";
-    std::cout << "Benchmark: " << GetName() << "\n";
+    std::cout << "Benchmark: " << GetName()
+              << " (" << GetDescription() << ")\n";
     Setup();    
     std::cout << "Initializing benchmark input...\n";
     InitializeInput();

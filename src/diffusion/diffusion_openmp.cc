@@ -48,19 +48,12 @@ void DiffusionOpenMP::Initialize3D() {
   }
 }
 
-void DiffusionOpenMP::InitializeBenchmark() {
-  f1_ = (REAL*)malloc(sizeof(REAL) * nx_ * ny_ * nz_);
-  assert(f1_);    
-  f2_ = (REAL*)malloc(sizeof(REAL) * nx_ * ny_ * nz_);
-  assert(f2_);
+void DiffusionOpenMP::InitializeInput() {
   if (ndim_ == 2) {
     Initialize2D();
   } else if (ndim_ == 3) {
     Initialize3D();
   }
-
-  //    f1_, nx_, ny_, nz_,  kx_, ky_, kz_, dx_, dy_, dz_,
-  //                kappa_, 0.0);
 }
 
 void DiffusionOpenMP::RunKernel2D(int count) {
