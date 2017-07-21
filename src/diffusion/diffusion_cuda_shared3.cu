@@ -143,7 +143,8 @@ void DiffusionCUDAShared3::RunKernel(int count) {
   FORCE_CHECK_CUDA(cudaMemcpy(f1_d_, f1_, s, cudaMemcpyHostToDevice));
 
   dim3 block_dim(block_x_, block_y_);
-  dim3 grid_dim(nx_ / block_x_, ny_ / block_y_, grid_z_);
+  dim3 grid_dim(nx_ / block_x_, ny_ / block_y_);
+  if (ndim_ == 3) grid_dim.z = grid_z_;
   CHECK_CUDA(cudaEventRecord(ev1_));
   for (int i = 0; i < count; ++i) {
     cuda_shared3::kernel3d<<<grid_dim, block_dim,
