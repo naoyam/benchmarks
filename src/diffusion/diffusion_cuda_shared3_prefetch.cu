@@ -3,7 +3,7 @@
 #include "common/cuda_util.h"
 
 namespace diffusion {
-namespace cuda_shared3 {
+namespace cuda_shared3_prefetch {
 
 #define GET(x) (x)
 
@@ -32,12 +32,13 @@ __global__ void kernel3d(F1_DECL f1, F2_DECL f2,
   const int k_end = k + block_z;
   int p = OFFSET3D(i, j, k, nx, ny);
   int ps = threadIdx.x+1 + threadIdx.y * sbx;  
-  float t1, t2, t3;
+  float t1, t2, t3, t4;
 
   int s = (j == 0)        ? 0 : -nx;
   int n = (j == ny-1)     ? 0 : nx;
 
   t3 = GET(f1[p]);
+  t4 = GET(f1[p+xy]);  
   t2 = (k == 0) ? t3 : GET(f1[p-xy]);
 
   // Move out the boundary conditions from the loop body
@@ -52,10 +53,9 @@ __global__ void kernel3d(F1_DECL f1, F2_DECL f2,
     int h = (threadIdx.x < blockDim.y) ? w : (blockDim.x - 1 + e);
     h = - threadIdx.x + h + (threadIdx.x & 3) * nx;
     int sbt = (threadIdx.x & 3) * sbx + ((threadIdx.x & 4) >> 2) * (sbx-1);
-    for (; k < k_end-1; ++k) {
-      t1 = t2;
-      t2 = t3;
-      t3 = GET(f1[p+xy]);
+    for (; k < k_end-2; ++k) {
+      SHIFT4(t1, t2, t3, t4);
+      t4 = GET(f1[p+xy*2]);
       sb[ps] = t2;
       if (threadIdx.x < blockDim.y*2) {
         sb[sbt] = LDG(f1 + p+h);
@@ -69,49 +69,64 @@ __global__ void kernel3d(F1_DECL f1, F2_DECL f2,
       __syncthreads();      
     }
 
-    t1 = t2;
-    t2 = t3;
-    t3 = (k < nz-1) ? GET(f1[p+xy]) : t3;
+    SHIFT4(t1, t2, t3, t4);
+    t4 = (k < nz-2) ? GET(f1[p+xy*2]) : t4;
     sb[ps] = t2;
     if (threadIdx.x < blockDim.y*2) {
       sb[sbt] = LDG(f1 + p+h);
     }
     __syncthreads();
+    f2[p] = cc * t2
+        + cw * sb[ps-1] + ce * sb[ps+1]
+        + cs * GET(f1[p+s]) + cn * sb[ps+sbx] + cb * t1 + ct * t3;
+    p += xy;    
+    __syncthreads();    
 
+    SHIFT4(t1, t2, t3, t4);
+    sb[ps] = t2;
+    if (threadIdx.x < blockDim.y*2) {
+      sb[sbt] = LDG(f1 + p+h);
+    }
+    __syncthreads();
     f2[p] = cc * t2
         + cw * sb[ps-1] + ce * sb[ps+1]
         + cs * GET(f1[p+s]) + cn * sb[ps+sbx] + cb * t1 + ct * t3;
   } else if (threadIdx.y == blockDim.y - 1) {
-    for (; k < k_end-1; ++k) {
-      t1 = t2;
-      t2 = t3;
-      //t3 = (k < nz-1) ? GET(f1[p+xy]) : t3;
-      t3 = GET(f1[p+xy]);
+    for (; k < k_end-2; ++k) {
+      SHIFT4(t1, t2, t3, t4);
+      t4 = GET(f1[p+xy*2]);
       sb[ps] = t2;
       __syncthreads();
 
       f2[p] = cc * t2
           + cw * sb[ps-1] + ce * sb[ps+1]
           + cs * sb[ps-sbx]
-          + cn * GET(f1[p+n])
+          + cn * GET(f1[p+n]) 
           + cb * t1 + ct * t3;
       p += xy;
       __syncthreads();      
     }
-    t1 = t2;
-    t2 = t3;
-    t3 = (k < nz-1) ? GET(f1[p+xy]) : t3;
+
+    SHIFT4(t1, t2, t3, t4);
+    t4 = (k < nz-2) ? GET(f1[p+xy*2]) : t4;
     sb[ps] = t2;
     __syncthreads();
-    
+    f2[p] = cc * t2
+        + cw * sb[ps-1] + ce * sb[ps+1]
+        + cs * sb[ps-sbx]+ cn * GET(f1[p+n]) + cb * t1 + ct * t3;
+    p += xy;    
+    __syncthreads();        
+
+    SHIFT4(t1, t2, t3, t4);
+    sb[ps] = t2;
+    __syncthreads();
     f2[p] = cc * t2
         + cw * sb[ps-1] + ce * sb[ps+1]
         + cs * sb[ps-sbx]+ cn * GET(f1[p+n]) + cb * t1 + ct * t3;
   } else {
-    for (; k < k_end-1; ++k) {
-      t1 = t2;
-      t2 = t3;
-      t3 = GET(f1[p+xy]);
+    for (; k < k_end-2; ++k) {
+      SHIFT4(t1, t2, t3, t4);
+      t4 = GET(f1[p+xy*2]);
       sb[ps] = t2;
       __syncthreads();
     
@@ -122,22 +137,31 @@ __global__ void kernel3d(F1_DECL f1, F2_DECL f2,
       p += xy;
       __syncthreads();      
     }
-    t1 = t2;
-    t2 = t3;
-    t3 = (k < nz-1) ? GET(f1[p+xy]) : t3;
+    
+    SHIFT4(t1, t2, t3, t4);
+    t4 = (k < nz-2) ? GET(f1[p+xy*2]) : t4;
     sb[ps] = t2;
     __syncthreads();
-    
     f2[p] = cc * t2
         + cw * sb[ps-1] + ce * sb[ps+1]
         + cs * sb[ps-sbx]+ cn * sb[ps+sbx] + cb * t1 + ct * t3;
+    p += xy;    
+    __syncthreads();            
+    
+    SHIFT4(t1, t2, t3, t4);
+    sb[ps] = t2;
+    __syncthreads();
+    f2[p] = cc * t2
+        + cw * sb[ps-1] + ce * sb[ps+1]
+        + cs * sb[ps-sbx]+ cn * sb[ps+sbx] + cb * t1 + ct * t3;
+    
   }
   return;
 }
 
-} // namespace cuda_shared3
+} // namespace cuda_shared3_prefetch
 
-void DiffusionCUDAShared3::RunKernel(int count) {
+void DiffusionCUDAShared3Prefetch::RunKernel(int count) {
   size_t s = sizeof(REAL) * nx_ * ny_ * nz_;  
   FORCE_CHECK_CUDA(cudaMemcpy(f1_d_, f1_, s, cudaMemcpyHostToDevice));
 
@@ -147,7 +171,7 @@ void DiffusionCUDAShared3::RunKernel(int count) {
   assert(block_y_ == 4);
   CHECK_CUDA(cudaEventRecord(ev1_));
   for (int i = 0; i < count; ++i) {
-    cuda_shared3::kernel3d<<<grid_dim, block_dim,
+    cuda_shared3_prefetch::kernel3d<<<grid_dim, block_dim,
         (block_x_+2)*(block_y_)*sizeof(float)>>>
         (f1_d_, f2_d_, nx_, ny_, nz_, ce_, cw_, cn_, cs_, ct_, cb_, cc_);
     REAL *t = f1_d_;
@@ -159,9 +183,9 @@ void DiffusionCUDAShared3::RunKernel(int count) {
   return;
 }
 
-void DiffusionCUDAShared3::Setup() {
+void DiffusionCUDAShared3Prefetch::Setup() {
   DiffusionCUDA::Setup();
-  FORCE_CHECK_CUDA(cudaFuncSetCacheConfig(cuda_shared3::kernel3d,
+  FORCE_CHECK_CUDA(cudaFuncSetCacheConfig(cuda_shared3_prefetch::kernel3d,
                                           cudaFuncCachePreferShared));
 }
 

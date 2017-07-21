@@ -33,7 +33,8 @@ using std::make_pair;
 #endif
 #if defined(CUDA_SHARED1) || defined(CUDA_SHARED2)  \
   || defined(CUDA_SHARED3) || defined(CUDA_SHARED4) \
-  || defined(CUDA_SHARED5) || defined(CUDA_SHARED6)
+  || defined(CUDA_SHARED5) || defined(CUDA_SHARED6) \
+  || defined(CUDA_SHARED3_PREFETCH)
 #include "diffusion/diffusion_cuda_shared.h"
 #endif
 
@@ -80,13 +81,14 @@ void PrintUsage(std::ostream &os, char *prog_name) {
      << "\t--count N   " << "Number of iterations (default: " << COUNT << ")\n"
      << "\t--size N    "  << "Size of each dimension (default: " << SIZE << ")\n"
      << "\t--dump      "  << "Dump the final data to file\n"
+     << "\t--warmup    "  << "Enable warming-up runs\n"      
      << "\t--help      "  << "Display this help message\n";
 }
 
 
 void ProcessProgramOptions(int argc, char *argv[],
                            int &nd, int &count, int &size,
-                           bool &dump) {
+                           bool &dump, bool &warmup) {
   int c;
   while (1) {
     int option_index = 0;
@@ -95,6 +97,7 @@ void ProcessProgramOptions(int argc, char *argv[],
       {"count", 1, 0, 0},
       {"size", 1, 0, 0},
       {"dump", 0, 0, 0},
+      {"warmup", 0, 0, 0},      
       {"help", 0, 0, 0},      
       {0, 0, 0, 0}
     };
@@ -123,6 +126,9 @@ void ProcessProgramOptions(int argc, char *argv[],
         dump = true;
         break;
       case 4:
+        warmup = true;
+        break;
+      case 5:
         PrintUsage(std::cerr, argv[0]);
         exit(EXIT_SUCCESS);
         break;
@@ -137,8 +143,9 @@ int main(int argc, char *argv[]) {
   int size = SIZE; // default size
   int count = COUNT; // default iteration count
   bool dump = false;
+  bool warmup = false;
   
-  ProcessProgramOptions(argc, argv, nd, count, size, dump);
+  ProcessProgramOptions(argc, argv, nd, count, size, dump, warmup);
 
   assert(nd >= 2 && nd <= 3);
   
@@ -166,6 +173,8 @@ int main(int argc, char *argv[]) {
   bmk = new DiffusionCUDAShared2(nd, dims.data());
 #elif defined(CUDA_SHARED3)
   bmk = new DiffusionCUDAShared3(nd, dims.data());
+#elif defined(CUDA_SHARED3_PREFETCH)
+  bmk = new DiffusionCUDAShared3Prefetch(nd, dims.data());
 #elif defined(CUDA_SHARED4)
   bmk = new DiffusionCUDAShared4(nd, dims.data());
 #elif defined(CUDA_SHARED5)
@@ -186,7 +195,7 @@ int main(int argc, char *argv[]) {
   bmk = new Baseline(nd, dims.data());
 #endif
   
-  bmk->RunBenchmark(count, dump);
+  bmk->RunBenchmark(count, dump, warmup);
 
   return 0;
 }

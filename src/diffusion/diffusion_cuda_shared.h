@@ -55,6 +55,23 @@ class DiffusionCUDAShared3: public DiffusionCUDA {
   virtual void RunKernel(int count);
 };
 
+class DiffusionCUDAShared3Prefetch: public DiffusionCUDA {
+ public:
+  DiffusionCUDAShared3Prefetch(int nd, const int *dims):
+      DiffusionCUDA(nd, dims) {
+    // 2D is not yet implemented 
+    assert(nd == 3);
+  }
+  virtual std::string GetName() const {
+    return std::string("cuda_shared3_prefetch");
+  }
+  virtual std::string GetDescription() const {
+    return std::string("cuda_shared3 + vertical prefetch");
+  }
+  virtual void Setup();  
+  virtual void RunKernel(int count);
+};
+
 class DiffusionCUDAShared4: public DiffusionCUDA {
  public:
   DiffusionCUDAShared4(int nd, const int *dims):

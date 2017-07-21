@@ -106,7 +106,7 @@ class Diffusion {
   
   virtual std::string GetName() const = 0;
   virtual std::string GetDescription() const = 0;  
-  void RunBenchmark(int count, bool dump) {
+  void RunBenchmark(int count, bool dump, bool warmup) {
     std::cout << "*** Diffusion Benchmark ***\n";
     std::cout << "Benchmark: " << GetName()
               << " (" << GetDescription() << ")\n";
@@ -120,10 +120,12 @@ class Diffusion {
     } else if (ndim_ == 3) {
       std::cout << nx_ << "x" << ny_ << "x" << nz_ << "\n";
     }
-    std::cout << "Warming up the kernel...\n";
-    WarmingUp();
-    std::cout << "Reinitializing benchmark input...\n";    
-    InitializeInput();
+    if (warmup) {
+      std::cout << "Warming up the kernel...\n";
+      WarmingUp();
+      std::cout << "Reinitializing benchmark input...\n";    
+      InitializeInput();
+    }
     std::cout << "Running the kernel...\n";    
     Stopwatch st;
     StopwatchStart(&st);

@@ -146,6 +146,14 @@ main_cuda_shared3.o: main.cc diffusion_cuda.h
 	$(CXX) -o $@ -c $< $(CXXFLAGS) -DCUDA_SHARED3 -I$(CUDA_INC)
 diffusion_cuda_shared3.o: diffusion_cuda.h diffusion_cuda_shared.h
 ########################################
+# diffusion_cuda_shared3_prefetch
+diffusion_cuda_shared3_prefetch: $(OBJ) main_cuda_shared3_prefetch.o diffusion_cuda.o \
+	diffusion_cuda_shared3_prefetch.o
+	$(CXX) -o $@ $^ $(LDFLAGS) $(CUDA_LDFLAGS)
+main_cuda_shared3_prefetch.o: main.cc diffusion_cuda.h
+	$(CXX) -o $@ -c $< $(CXXFLAGS) -DCUDA_SHARED3_PREFETCH -I$(CUDA_INC)
+diffusion_cuda_shared3_prefetch.o: diffusion_cuda.h diffusion_cuda_shared.h
+########################################
 # diffusion_cuda_shared4
 diffusion_cuda_shared4: $(OBJ) main_cuda_shared4.o diffusion_cuda.o \
 	diffusion_cuda_shared4.o
