@@ -49,10 +49,11 @@ __global__ void kernel3d(F1_DECL f1, F2_DECL f2,
     int w = (blockIdx.x == 0)        ? 0 : -1;
     int e = (blockIdx.x == gridDim.x-1)     ? 0 : 1;
 
-    // assume blockDim.y == 4
     int h = (threadIdx.x < blockDim.y) ? w : (blockDim.x - 1 + e);
-    h = - threadIdx.x + h + (threadIdx.x & 3) * nx;
-    int sbt = (threadIdx.x & 3) * sbx + ((threadIdx.x & 4) >> 2) * (sbx-1);
+    h = - threadIdx.x + h + (threadIdx.x & (blockDim.y-1)) * nx;
+    int sbt = (threadIdx.x & (blockDim.y-1)) * sbx;
+    // the latter half takes care of the east boundary
+    if (threadIdx.x >= blockDim.y) sbt += sbx-1;
     for (; k < k_end-2; ++k) {
       SHIFT4(t1, t2, t3, t4);
       t4 = GET(f1[p+xy*2]);
@@ -167,8 +168,6 @@ void DiffusionCUDAShared3Prefetch::RunKernel(int count) {
 
   dim3 block_dim(block_x_, block_y_);
   dim3 grid_dim(nx_ / block_x_, ny_ / block_y_, grid_z_);
-  // assumed in Hte kernel
-  assert(block_y_ == 4);
   CHECK_CUDA(cudaEventRecord(ev1_));
   for (int i = 0; i < count; ++i) {
     cuda_shared3_prefetch::kernel3d<<<grid_dim, block_dim,
