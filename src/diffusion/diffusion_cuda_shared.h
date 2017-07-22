@@ -3,9 +3,6 @@
 
 #include "diffusion/diffusion_cuda.h"
 
-#define SHIFT3(x, y, z) x = y; y = z
-#define SHIFT4(x, y, z, k) x = y; y = z; z = k
-
 namespace diffusion {
 
 class DiffusionCUDAShared1: public DiffusionCUDA {

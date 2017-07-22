@@ -37,6 +37,9 @@ using std::make_pair;
   || defined(CUDA_SHARED3_PREFETCH)
 #include "diffusion/diffusion_cuda_shared.h"
 #endif
+#if defined(CUDA_SHFL1)
+#include "diffusion/diffusion_cuda_shfl.h"
+#endif
 
 #if 0
 #if defined(OPENMP_TEMPORAL_BLOCKING)
@@ -181,6 +184,8 @@ int main(int argc, char *argv[]) {
   bmk = new DiffusionCUDAShared5(nd, dims.data());
 #elif defined(CUDA_SHARED6)
   bmk = new DiffusionCUDAShared6(nd, dims.data());
+#elif defined(CUDA_SHFL1)
+  bmk = new DiffusionCUDASHFL1(nd, dims.data());
 #elif defined(CUDA_XY)
   bmk = new DiffusionCUDAXY(nx, nx, nx);
 #elif defined(CUDA_TEMPORAL_BLOCKING)

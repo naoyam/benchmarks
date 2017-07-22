@@ -178,6 +178,14 @@ main_cuda_shared6.o: main.cc diffusion_cuda.h
 	$(CXX) -o $@ -c $< $(CXXFLAGS) -DCUDA_SHARED6 -I$(CUDA_INC)
 diffusion_cuda_shared6.o: diffusion_cuda.h
 ########################################
+# diffusion_cuda_shfl1
+diffusion_cuda_shfl1: $(OBJ) main_cuda_shfl1.o diffusion_cuda.o \
+	diffusion_cuda_shfl1.o
+	$(CXX) -o $@ $^ $(LDFLAGS) $(CUDA_LDFLAGS)
+main_cuda_shfl1.o: main.cc diffusion_cuda.h
+	$(CXX) -o $@ -c $< $(CXXFLAGS) -DCUDA_SHFL1 -I$(CUDA_INC)
+diffusion_cuda_shfl1.o: diffusion_cuda.h
+########################################
 # diffusion_cuda_xy
 # XY multi processing
 diffusion_cuda_xy: $(OBJ) main_cuda_xy.o diffusion_cuda.o

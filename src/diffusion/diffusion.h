@@ -22,6 +22,9 @@
 #define OFFSET3D(i, j, k, nx, ny) \
   ((i) + (j) * (nx) + (k) * (nx) * (ny))
 
+#define SHIFT3(x, y, z) x = y; y = z
+#define SHIFT4(x, y, z, k) x = y; y = z; z = k
+
 #define STRINGIFY(x) #x
 #ifndef UNROLL
 //#define PRAGMA_UNROLL(x)
