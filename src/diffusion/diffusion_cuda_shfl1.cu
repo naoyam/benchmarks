@@ -97,9 +97,7 @@ __global__ void kernel2d(F1_DECL f1, F2_DECL f2,
       if (x < NUM_WB_X-1) fe_next_warp = __shfl(fc[x+1], 0);
       if (tid == WARP_SIZE -1) {
         if (x == NUM_WB_X - 1) {
-          if (i + x_offset == nx - 1) {
-            // nothing
-          } else {
+          if (i + x_offset != nx - 1) {
             fe = f1[p+x_offset+1];
           }
         } else {
