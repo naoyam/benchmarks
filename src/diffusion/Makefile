@@ -75,6 +75,7 @@ main_openmp.o: main.cc
 ##################################################
 .PHONY: cuda
 cuda: diffusion_cuda       \
+	diffusion_cuda_restrict  \
 	diffusion_cuda_zblock  \
 	diffusion_cuda_roc     \
 	diffusion_cuda_opt1    \
@@ -99,6 +100,12 @@ diffusion_cuda_roc: $(OBJ) main_cuda_roc.o diffusion_cuda_roc.o diffusion_cuda.o
 diffusion_cuda_roc.o: diffusion_cuda_roc.h
 main_cuda_roc.o: main.cc diffusion_cuda.h diffusion_cuda_roc.h
 	$(CXX) -o $@ -c $< $(CXXFLAGS) -DCUDA_ROC -I$(CUDA_INC)
+########################################
+# diffusion_cuda_restrict
+diffusion_cuda_restrict: $(OBJ) main_cuda_restrict.o diffusion_cuda.o
+	$(CXX) -o $@ $^ $(LDFLAGS) $(CUDA_LDFLAGS)
+main_cuda_restrict.o: main.cc diffusion_cuda.h
+	$(CXX) -o $@ -c $< $(CXXFLAGS) -DCUDA_RESTRICT -I$(CUDA_INC)
 ########################################
 # diffusion_cuda_zblock
 diffusion_cuda_zblock: $(OBJ) main_cuda_zblock.o diffusion_cuda.o

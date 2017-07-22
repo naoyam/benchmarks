@@ -60,6 +60,21 @@ class DiffusionCUDA: public Baseline {
 
 };
 
+class DiffusionCUDARestrict: public DiffusionCUDA {
+ public:
+  DiffusionCUDARestrict(int nd, const int *dims):
+      DiffusionCUDA(nd, dims) {
+  }
+  virtual std::string GetName() const {
+    return std::string("cuda_restrict");
+  }
+  virtual std::string GetDescription() const {
+    return std::string("baseline + restrict annotation");
+  }
+  virtual void Setup();  
+  virtual void RunKernel(int count);
+};
+
 class DiffusionCUDAZBlock: public DiffusionCUDA {
  public:
   DiffusionCUDAZBlock(int nd, const int *dims):
