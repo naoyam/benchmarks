@@ -10,7 +10,10 @@ __global__ void kernel2d(F1_DECL f1, F2_DECL f2,
                          int nx, int ny,
                          REAL ce, REAL cw, REAL cn, REAL cs,
                          REAL cc) {
-  int tid = threadIdx.x;
+  // this should have no effect to the final result, but may tell the
+  //compiler tid is less than WARP_SIZE
+  //int tid = threadIdx.x;
+  int tid = threadIdx.x & WARP_MASK;
   int i = BLOCK_X * blockIdx.x + threadIdx.x;  
   int j = BLOCK_Y * blockIdx.y;
   int j_end = j + BLOCK_Y;
@@ -23,6 +26,9 @@ __global__ void kernel2d(F1_DECL f1, F2_DECL f2,
     fn[x] = f1[p+x*WARP_SIZE];
     fc[x] = (blockIdx.y > 0) ? f1[p+x*WARP_SIZE-nx] : fn[x];
   }
+
+  int shfl_w_block_idx = tid == WARP_SIZE - 1 ? -1 : 0;
+  int shfl_e_block_idx = tid == 0 ? 1 : 0;  
   
   for (; j < j_end; ++j) {
     int x_offset = 0;
@@ -41,24 +47,15 @@ __global__ void kernel2d(F1_DECL f1, F2_DECL f2,
     if (tid == 0 && i != 0) {
       fw = f1[p-1];
     }
-    REAL fe = __shfl_down(fc[x], 1);
-    REAL fe_b = __shfl(fc[x+1], 0);
-    fe = (tid == WARP_SIZE -1) ? fe_b : fe;
+    REAL fe = __shfl(fc[x+shfl_e_block_idx], (tid + 1) & WARP_MASK);    
     f2[p+x_offset] = cc * fc[x] + cw * fw + ce * fe
         + cs * fs[x] + cn * fn[x];
     x_offset += WARP_SIZE; 
 
-    
     PRAGMA_UNROLL
     for (int x = 1; x < NUM_WB_X-1; ++x) {
-      REAL fw = __shfl_up(fc[x], 1);
-      REAL fw_b = __shfl(fc[x-1], WARP_SIZE - 1);
-      fw = (tid == 0) ? fw_b : fw;
-      
-      REAL fe = __shfl_down(fc[x], 1);
-      REAL fe_b = __shfl(fc[x+1], 0);
-      fe = (tid == WARP_SIZE -1) ? fe_b : fe;
-      
+      REAL fw = __shfl(fc[x+shfl_w_block_idx], (tid - 1 + WARP_SIZE) & WARP_MASK);
+      REAL fe = __shfl(fc[x+shfl_e_block_idx], (tid + 1) & WARP_MASK);
       f2[p+x_offset] = cc * fc[x] + cw * fw + ce * fe
           + cs * fs[x] + cn * fn[x];
       x_offset += WARP_SIZE; 
@@ -66,9 +63,7 @@ __global__ void kernel2d(F1_DECL f1, F2_DECL f2,
 
     // last boundary
     x = NUM_WB_X - 1;
-    fw = __shfl_up(fc[x], 1);
-    REAL fw_b = __shfl(fc[x-1], WARP_SIZE - 1);
-    fw = (tid == 0) ? fw_b : fw;
+    fw = __shfl(fc[x+shfl_w_block_idx], (tid - 1 + WARP_SIZE) & WARP_MASK);    
     fe = __shfl_down(fc[x], 1);
     if (tid == WARP_SIZE -1) {
       if (i + x_offset != nx - 1) {
