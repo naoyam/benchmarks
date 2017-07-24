@@ -155,32 +155,37 @@ __global__ void kernel3d(const REAL *f1, REAL *f2,
       }
     }
 
-    PRAGMA_UNROLL              
+    PRAGMA_UNROLL
     for (int y = 1; y < BLOCK_Y+1; ++y) {
-      PRAGMA_UNROLL          
-      for (int x = 0; x < NUM_WB_X; ++x) {
+      {
+        int x = 0;
         REAL tw = __shfl_up(t2[x][y], 1);
-        REAL tw_prev_warp = 0;
-        if (x > 0) tw_prev_warp = __shfl(t2[x-1][y], WARP_SIZE - 1);
-        if (tid == 0) {
-          if (x == 0) {
-            if (blockIdx.x > 0) {
-              tw = f1[p-1+(y-1)*nx];
-            }
-          } else {
-            tw = tw_prev_warp;
-          }
+        if (tid == 0 && blockIdx.x > 0) {
+          tw = f1[p-1+(y-1)*nx];
         }
-        REAL te = __shfl_down(t2[x][y], 1);
-        REAL te_next_warp = 0;
-        if (x < NUM_WB_X-1) te_next_warp = __shfl(t2[x+1][y], 0);
-        if (tid == WARP_SIZE -1) {
-          if (x == NUM_WB_X - 1) {
-            if (blockIdx.x < gridDim.x - 1) {
-              te = f1[p+x*WARP_SIZE+1+(y-1)*nx];
-            }
-          } else {
-            te = te_next_warp;
+        REAL te_self = tid == 0 ? t2[x+1][y] :  t2[x][y];
+        REAL te = __shfl(te_self, (tid+1) & WARP_MASK);
+        f2[p+x*WARP_SIZE+(y-1)*nx] = cc * t2[x][y] + cw * tw
+            + ce * te + cs * t2[x][y-1] + cn * t2[x][y+1]
+            + cb * t1[x][y] + ct * t3[x][y];
+      }
+      for (int x = 1; x < NUM_WB_X-1; ++x) {
+        REAL tw_self = tid == WARP_SIZE - 1 ? t2[x-1][y] : t2[x][y];
+        REAL tw = __shfl(tw_self, (tid-1) & WARP_MASK);
+        REAL te_self = tid == 0 ? t2[x+1][y] :  t2[x][y];        
+        REAL te = __shfl(te_self, (tid+1) & WARP_MASK);
+        f2[p+x*WARP_SIZE+(y-1)*nx] = cc * t2[x][y] + cw * tw
+            + ce * te + cs * t2[x][y-1] + cn * t2[x][y+1]
+            + cb * t1[x][y] + ct * t3[x][y];
+      }
+      {
+        int x = NUM_WB_X - 1;
+        REAL tw_self = tid == WARP_SIZE - 1 ? t2[x-1][y] : t2[x][y];        
+        REAL tw = __shfl(tw_self, (tid-1) & WARP_MASK);
+        REAL te = __shfl_down(t2[x][y], 1);        
+        if (tid == WARP_SIZE - 1) {
+          if (blockIdx.x < gridDim.x - 1) {
+            te = f1[p+x*WARP_SIZE+1+(y-1)*nx];
           }
         }
         f2[p+x*WARP_SIZE+(y-1)*nx] = cc * t2[x][y] + cw * tw
@@ -198,10 +203,14 @@ void DiffusionCUDASHFL2::RunKernel(int count) {
   size_t s = sizeof(REAL) * nx_ * ny_ * nz_;  
   FORCE_CHECK_CUDA(cudaMemcpy(f1_d_, f1_, s, cudaMemcpyHostToDevice));
 
+  assert(BLOCK_X / WARP_SIZE >= 2);
+  assert(BLOCK_X % WARP_SIZE == 0);
+  assert(BLOCK_Y > 1);
+
   dim3 block_dim(WARP_SIZE, 1);
   dim3 grid_dim(nx_ / BLOCK_X, ny_ / BLOCK_Y);
   if (ndim_ == 3) grid_dim.z = grid_z_;
-  
+
   CHECK_CUDA(cudaEventRecord(ev1_));
   for (int i = 0; i < count; ++i) {
     if (ndim_ == 2) {

@@ -30,6 +30,9 @@ endif
 ifneq ($(ARCH),)
 	NVCC_ARCH = -arch $(ARCH)
 endif	
+ifneq ($(REG),)
+	NVCC_ARCH += --maxrregcount $(REG)
+endif	
 
 ##################################################
 
