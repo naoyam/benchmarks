@@ -95,46 +95,64 @@ __global__ void kernel3d(const REAL *f1, REAL *f2,
 
   for (int y = 0; y < BLOCK_Y; ++y) {
     for (int x = 0; x < NUM_WB_X; ++x) {
-      t3[x][y+1] = f1[p+x*WARP_SIZE+xy*y];
-      t2[x][y] = (k > 0) ? f1[p+x*WARP_SIZE+y*nx-xy] : t3[x][y];
+      t3[x][y+1] = f1[p+x*WARP_SIZE+y*nx];
+      t2[x][y+1] = (k > 0) ? f1[p+x*WARP_SIZE+y*nx-xy] : t3[x][y+1];
+    }
+  }
+  {
+    int y = -1;
+    for (int x = 0; x < NUM_WB_X; ++x) {
+      t3[x][y+1] = blockIdx.y == 0 ? t3[x][y+1+1] :
+          f1[p+x*WARP_SIZE+y*nx];
+    }
+  }
+  {
+    int y = BLOCK_Y;
+    for (int x = 0; x < NUM_WB_X; ++x) {
+      t3[x][y+1] = blockIdx.y == gridDim.y - 1 ? 
+          t3[x][y+1-1] : f1[p+x*WARP_SIZE+y*nx];
     }
   }
 
   for (; k < k_end; ++k) {
     // load
-    
+    PRAGMA_UNROLL    
     for (int y = 0; y < BLOCK_Y; ++y) {
+      PRAGMA_UNROLL
       for (int x = 0; x < NUM_WB_X; ++x) {
         SHIFT3(t1[x][y+1], t2[x][y+1], t3[x][y+1]);
-        t3[x][y+1] = (k < k_end - 1) ? f1[p+x*WARP_SIZE+y*nx+xy]
+        t3[x][y+1] = (k < nz - 1) ? f1[p+x*WARP_SIZE+y*nx+xy]
             : t3[x][y+1];
       }
     }
 
     int y = -1;
+    PRAGMA_UNROLL    
     for (int x = 0; x < NUM_WB_X; ++x) {
       SHIFT3(t1[x][y+1], t2[x][y+1], t3[x][y+1]);      
       if (blockIdx.y == 0) {
         t3[x][y+1] = t3[x][y+1+1];
       } else {
-        t3[x][y+1] = (k < k_end - 1) ? f1[p+x*WARP_SIZE+y*nx+xy]
+        t3[x][y+1] = (k < nz - 1) ? f1[p+x*WARP_SIZE+y*nx+xy]
             : t3[x][y+1];
       }
     }
 
     y = BLOCK_Y;
+    PRAGMA_UNROLL        
     for (int x = 0; x < NUM_WB_X; ++x) {
       SHIFT3(t1[x][y+1], t2[x][y+1], t3[x][y+1]);      
       if (blockIdx.y == gridDim.y - 1) {
         t3[x][y+1] = t3[x][y+1-1];
       } else {
-        t3[x][y+1] = (k < k_end - 1) ? f1[p+x*WARP_SIZE+y*nx+xy]
+        t3[x][y+1] = (k < nz - 1) ? f1[p+x*WARP_SIZE+y*nx+xy]
             : t3[x][y+1];
       }
     }
 
-
-    for (int y = 0; y < BLOCK_Y; ++y) {
+    PRAGMA_UNROLL              
+    for (int y = 1; y < BLOCK_Y+1; ++y) {
+      PRAGMA_UNROLL          
       for (int x = 0; x < NUM_WB_X; ++x) {
         REAL tw = __shfl_up(t2[x][y], 1);
         REAL tw_prev_warp = 0;
@@ -142,7 +160,7 @@ __global__ void kernel3d(const REAL *f1, REAL *f2,
         if (tid == 0) {
           if (x == 0) {
             if (blockIdx.x > 0) {
-              tw = f1[p-1];
+              tw = f1[p-1+(y-1)*nx];
             }
           } else {
             tw = tw_prev_warp;
@@ -153,19 +171,19 @@ __global__ void kernel3d(const REAL *f1, REAL *f2,
         if (x < NUM_WB_X-1) te_next_warp = __shfl(t2[x+1][y], 0);
         if (tid == WARP_SIZE -1) {
           if (x == NUM_WB_X - 1) {
-            if (blockIdx.x < gridDim.x) {
-              te = f1[p+x*WARP_SIZE+y*nx];
+            if (blockIdx.x < gridDim.x - 1) {
+              te = f1[p+x*WARP_SIZE+1+(y-1)*nx];
             }
           } else {
             te = te_next_warp;
           }
         }
-        
-        f2[p+x*WARP_SIZE+y*nx] = cc * t2[x][y] + cw * tw
-            + ce * t2[x][y+1] + cs * t2[x][y-1] + cn * t2[x][y+1]
+        f2[p+x*WARP_SIZE+(y-1)*nx] = cc * t2[x][y] + cw * tw
+            + ce * te + cs * t2[x][y-1] + cn * t2[x][y+1]
             + cb * t1[x][y] + ct * t3[x][y];
       }
     }
+    p += xy;
   }
 }
 
@@ -185,7 +203,6 @@ void DiffusionCUDASHFL1::RunKernel(int count) {
       cuda_shfl1::kernel2d<<<grid_dim, block_dim>>>
           (f1_d_, f2_d_, nx_, ny_, ce_, cw_, cn_, cs_, cc_);
     } else if (ndim_ == 3) {
-      assert(0);
       cuda_shfl1::kernel3d<<<grid_dim, block_dim>>>
           (f1_d_, f2_d_, nx_, ny_, nz_, ce_, cw_, cn_, cs_,
            ct_, cb_, cc_);

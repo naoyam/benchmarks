@@ -81,6 +81,117 @@ __global__ void kernel2d(F1_DECL f1, F2_DECL f2,
   return;
 }
 
+__global__ void kernel3d(const REAL *f1, REAL *f2,
+                         int nx, int ny, int nz,
+                         REAL ce, REAL cw, REAL cn, REAL cs,
+                         REAL ct, REAL cb, REAL cc) {
+  const int tid = threadIdx.x;
+  int i = BLOCK_X * blockIdx.x + threadIdx.x;  
+  int j = BLOCK_Y * blockIdx.y;
+  const int block_z = nz / gridDim.z;
+  int k = block_z * blockIdx.z;
+  const int k_end = k + block_z;
+  const int xy = nx * ny;
+  
+  int p = OFFSET3D(i, j, k, nx, ny);
+
+  REAL t1[NUM_WB_X][BLOCK_Y+2], t2[NUM_WB_X][BLOCK_Y+2],
+      t3[NUM_WB_X][BLOCK_Y+2];
+
+  for (int y = 0; y < BLOCK_Y; ++y) {
+    for (int x = 0; x < NUM_WB_X; ++x) {
+      t3[x][y+1] = f1[p+x*WARP_SIZE+y*nx];
+      t2[x][y+1] = (k > 0) ? f1[p+x*WARP_SIZE+y*nx-xy] : t3[x][y+1];
+    }
+  }
+  {
+    int y = -1;
+    for (int x = 0; x < NUM_WB_X; ++x) {
+      t3[x][y+1] = blockIdx.y == 0 ? t3[x][y+1+1] :
+          f1[p+x*WARP_SIZE+y*nx];
+    }
+  }
+  {
+    int y = BLOCK_Y;
+    for (int x = 0; x < NUM_WB_X; ++x) {
+      t3[x][y+1] = blockIdx.y == gridDim.y - 1 ? 
+          t3[x][y+1-1] : f1[p+x*WARP_SIZE+y*nx];
+    }
+  }
+
+  for (; k < k_end; ++k) {
+    // load
+    PRAGMA_UNROLL    
+    for (int y = 0; y < BLOCK_Y; ++y) {
+      PRAGMA_UNROLL
+      for (int x = 0; x < NUM_WB_X; ++x) {
+        SHIFT3(t1[x][y+1], t2[x][y+1], t3[x][y+1]);
+        t3[x][y+1] = (k < nz - 1) ? f1[p+x*WARP_SIZE+y*nx+xy]
+            : t3[x][y+1];
+      }
+    }
+
+    int y = -1;
+    PRAGMA_UNROLL    
+    for (int x = 0; x < NUM_WB_X; ++x) {
+      SHIFT3(t1[x][y+1], t2[x][y+1], t3[x][y+1]);      
+      if (blockIdx.y == 0) {
+        t3[x][y+1] = t3[x][y+1+1];
+      } else {
+        t3[x][y+1] = (k < nz - 1) ? f1[p+x*WARP_SIZE+y*nx+xy]
+            : t3[x][y+1];
+      }
+    }
+
+    y = BLOCK_Y;
+    PRAGMA_UNROLL        
+    for (int x = 0; x < NUM_WB_X; ++x) {
+      SHIFT3(t1[x][y+1], t2[x][y+1], t3[x][y+1]);      
+      if (blockIdx.y == gridDim.y - 1) {
+        t3[x][y+1] = t3[x][y+1-1];
+      } else {
+        t3[x][y+1] = (k < nz - 1) ? f1[p+x*WARP_SIZE+y*nx+xy]
+            : t3[x][y+1];
+      }
+    }
+
+    PRAGMA_UNROLL              
+    for (int y = 1; y < BLOCK_Y+1; ++y) {
+      PRAGMA_UNROLL          
+      for (int x = 0; x < NUM_WB_X; ++x) {
+        REAL tw = __shfl_up(t2[x][y], 1);
+        REAL tw_prev_warp = 0;
+        if (x > 0) tw_prev_warp = __shfl(t2[x-1][y], WARP_SIZE - 1);
+        if (tid == 0) {
+          if (x == 0) {
+            if (blockIdx.x > 0) {
+              tw = f1[p-1+(y-1)*nx];
+            }
+          } else {
+            tw = tw_prev_warp;
+          }
+        }
+        REAL te = __shfl_down(t2[x][y], 1);
+        REAL te_next_warp = 0;
+        if (x < NUM_WB_X-1) te_next_warp = __shfl(t2[x+1][y], 0);
+        if (tid == WARP_SIZE -1) {
+          if (x == NUM_WB_X - 1) {
+            if (blockIdx.x < gridDim.x - 1) {
+              te = f1[p+x*WARP_SIZE+1+(y-1)*nx];
+            }
+          } else {
+            te = te_next_warp;
+          }
+        }
+        f2[p+x*WARP_SIZE+(y-1)*nx] = cc * t2[x][y] + cw * tw
+            + ce * te + cs * t2[x][y-1] + cn * t2[x][y+1]
+            + cb * t1[x][y] + ct * t3[x][y];
+      }
+    }
+    p += xy;
+  }
+}
+
 } // namespace cuda_shfl2
 
 void DiffusionCUDASHFL2::RunKernel(int count) {
@@ -97,9 +208,9 @@ void DiffusionCUDASHFL2::RunKernel(int count) {
       cuda_shfl2::kernel2d<<<grid_dim, block_dim>>>
           (f1_d_, f2_d_, nx_, ny_, ce_, cw_, cn_, cs_, cc_);
     } else if (ndim_ == 3) {
-      assert(0);
-      //cuda_shfl1::kernel3d<<<grid_dim, block_dim>>>
-      //(f1_d_, f2_d_, nx_, ny_, nz_, ce_, cw_, cn_, cs_, ct_, cb_, cc_);
+      cuda_shfl2::kernel3d<<<grid_dim, block_dim>>>
+          (f1_d_, f2_d_, nx_, ny_, nz_, ce_, cw_, cn_, cs_,
+           ct_, cb_, cc_);
     }
     REAL *t = f1_d_;
     f1_d_ = f2_d_;
