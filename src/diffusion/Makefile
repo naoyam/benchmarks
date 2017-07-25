@@ -27,6 +27,9 @@ endif
 ifneq ($(DLCM),)
 	NVCC_CFLAGS += -Xptxas -dlcm=$(DLCM)
 endif	
+ifneq ($(DSCM),)
+	NVCC_CFLAGS += -Xptxas -dscm=$(DSCM)
+endif	
 ifneq ($(ARCH),)
 	NVCC_ARCH = -arch $(ARCH)
 endif	

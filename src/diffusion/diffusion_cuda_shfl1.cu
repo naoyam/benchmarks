@@ -6,6 +6,8 @@
 #define WARP_MASK (WARP_SIZE-1)
 #define NUM_WB_X (BLOCK_X / WARP_SIZE)
 
+#define USE_LDG
+
 namespace diffusion {
 namespace cuda_shfl1 {
 
@@ -160,7 +162,7 @@ __global__ void kernel3d(const REAL *f1, REAL *f2,
         if (tid == 0) {
           if (x == 0) {
             if (blockIdx.x > 0) {
-              tw = f1[p-1+(y-1)*nx];
+              tw = LDG(f1+p-1+(y-1)*nx);
             }
           } else {
             tw = tw_prev_warp;
@@ -172,7 +174,7 @@ __global__ void kernel3d(const REAL *f1, REAL *f2,
         if (tid == WARP_SIZE -1) {
           if (x == NUM_WB_X - 1) {
             if (blockIdx.x < gridDim.x - 1) {
-              te = f1[p+x*WARP_SIZE+1+(y-1)*nx];
+              te = LDG(f1+p+x*WARP_SIZE+1+(y-1)*nx);
             }
           } else {
             te = te_next_warp;
