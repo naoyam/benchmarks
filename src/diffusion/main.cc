@@ -28,6 +28,9 @@ using std::make_pair;
 #ifdef CUDA_ROC
 #include "diffusion/diffusion_cuda_roc.h"
 #endif
+#ifdef CUDA_COPY
+#include "diffusion/diffusion_cuda_copy.h"
+#endif
 #if defined(CUDA_OPT1) || defined(CUDA_OPT2)
 #include "diffusion/diffusion_cuda_opt.h"
 #endif
@@ -169,6 +172,8 @@ int main(int argc, char *argv[]) {
   bmk = new DiffusionCUDARestrict(nd, dims.data());
 #elif defined(CUDA_ZBLOCK)
   bmk = new DiffusionCUDAZBlock(nd, dims.data());
+#elif defined(CUDA_COPY)
+  bmk = new DiffusionCUDACopy(nd, dims.data());
 #elif defined(CUDA_OPT1)
   bmk = new DiffusionCUDAOpt1(nd, dims.data());
 #elif defined(CUDA_OPT2)

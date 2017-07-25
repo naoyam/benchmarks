@@ -119,6 +119,13 @@ diffusion_cuda_zblock: $(OBJ) main_cuda_zblock.o diffusion_cuda.o
 main_cuda_zblock.o: main.cc diffusion_cuda.h
 	$(CXX) -o $@ -c $< $(CXXFLAGS) -DCUDA_ZBLOCK -I$(CUDA_INC)
 ########################################
+# diffusion_cuda_copy
+diffusion_cuda_copy: $(OBJ) main_cuda_copy.o diffusion_cuda.o \
+	diffusion_cuda_copy.o
+	$(CXX) -o $@ $^ $(LDFLAGS) $(CUDA_LDFLAGS)
+main_cuda_copy.o: main.cc diffusion_cuda.h
+	$(CXX) -o $@ -c $< $(CXXFLAGS) -DCUDA_COPY -I$(CUDA_INC)
+########################################
 # diffusion_cuda_opt1
 diffusion_cuda_opt1: $(OBJ) main_cuda_opt1.o diffusion_cuda.o \
 	diffusion_cuda_opt.o
