@@ -83,7 +83,7 @@ __global__ void kernel2d(F1_DECL f1, F2_DECL f2,
   return;
 }
 
-__global__ void kernel3d(const REAL *f1, REAL *f2,
+__global__ void kernel3d(F1_DECL f1, F2_DECL f2,
                          int nx, int ny, int nz,
                          REAL ce, REAL cw, REAL cn, REAL cs,
                          REAL ct, REAL cb, REAL cc) {
@@ -236,6 +236,8 @@ void DiffusionCUDASHFL2::RunKernel(int count) {
 void DiffusionCUDASHFL2::Setup() {
   DiffusionCUDA::Setup();
   FORCE_CHECK_CUDA(cudaFuncSetCacheConfig(cuda_shfl2::kernel2d,
+                                          cudaFuncCachePreferL1));
+  FORCE_CHECK_CUDA(cudaFuncSetCacheConfig(cuda_shfl2::kernel3d,
                                           cudaFuncCachePreferL1));
 }
 

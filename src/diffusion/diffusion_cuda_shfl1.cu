@@ -78,7 +78,7 @@ __global__ void kernel2d(F1_DECL f1, F2_DECL f2,
   return;
 }
 
-__global__ void kernel3d(const REAL *f1, REAL *f2,
+__global__ void kernel3d(F1_DECL f1, F2_DECL f2,
                          int nx, int ny, int nz,
                          REAL ce, REAL cw, REAL cn, REAL cs,
                          REAL ct, REAL cb, REAL cc) {
@@ -180,9 +180,19 @@ __global__ void kernel3d(const REAL *f1, REAL *f2,
             te = te_next_warp;
           }
         }
+#if 0        
         f2[p+x*WARP_SIZE+(y-1)*nx] = cc * t2[x][y] + cw * tw
             + ce * te + cs * t2[x][y-1] + cn * t2[x][y+1]
             + cb * t1[x][y] + ct * t3[x][y];
+#else
+        if (x == 0 || x == NUM_WB_X - 1 || x == 2) {
+          f2[p+x*WARP_SIZE+(y-1)*nx] = t2[x][y];
+        } else {
+          f2[p+x*WARP_SIZE+(y-1)*nx] = cc * t2[x][y] + cw * tw
+            + ce * te + cs * t2[x][y-1] + cn * t2[x][y+1]
+            + cb * t1[x][y] + ct * t3[x][y];
+        }
+#endif
       }
     }
     p += xy;
@@ -221,6 +231,8 @@ void DiffusionCUDASHFL1::RunKernel(int count) {
 void DiffusionCUDASHFL1::Setup() {
   DiffusionCUDA::Setup();
   FORCE_CHECK_CUDA(cudaFuncSetCacheConfig(cuda_shfl1::kernel2d,
+                                          cudaFuncCachePreferL1));
+  FORCE_CHECK_CUDA(cudaFuncSetCacheConfig(cuda_shfl1::kernel3d,
                                           cudaFuncCachePreferL1));
 }
 
