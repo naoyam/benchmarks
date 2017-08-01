@@ -44,33 +44,13 @@ using std::make_pair;
   || defined(CUDA_SHFL3)
 #include "diffusion/diffusion_cuda_shfl.h"
 #endif
-
-#if 0
-#if defined(OPENMP_TEMPORAL_BLOCKING)
-#include "diffusion3d/diffusion3d_openmp_temporal_blocking.h"
+#if defined(CUDA_SHFL_TEMP1)
+#include "diffusion/diffusion_cuda_shfl_temp.h"
 #endif
 
-
-#if defined(CUDA_TEMPORAL_BLOCKING)
-#include "diffusion/diffusion_cuda_temporal_blocking.h"
-#endif
-
-#if defined(MIC)
-#include "diffusion/diffusion_mic.h"
-#endif
-
-#if defined(PHYSIS)
-#include "diffusion/diffusion_physis.h"
-#endif
-
-#if defined(FORTRAN) || defined(FORTRAN_ACC)
-#include "diffusion/diffusion_fortran.h"
-#endif
-#endif
 
 using namespace diffusion;
 using std::string;
-
 
 static const int COUNT = 100;
 static const int ND = 3;
@@ -198,16 +178,8 @@ int main(int argc, char *argv[]) {
   bmk = new DiffusionCUDASHFL2(nd, dims.data());
 #elif defined(CUDA_SHFL3)
   bmk = new DiffusionCUDASHFL3(nd, dims.data());
-#elif defined(CUDA_XY)
-  bmk = new DiffusionCUDAXY(nx, nx, nx);
-#elif defined(CUDA_TEMPORAL_BLOCKING)
-  bmk = new DiffusionCUDATemporalBlocking(nx, nx, nx);
-#elif defined(MIC)
-  bmk = new DiffusionMIC(nx, nx, nx);
-#elif defined(PHYSIS)
-  bmk = new DiffusionPhysis(nx, nx, nx, argc, argv);
-#elif defined(FORTRAN) || defined(FORTRAN_ACC)
-  bmk = new DiffusionFortran(nx, nx, nx);  
+#elif defined(CUDA_SHFL_TEMP1)
+  bmk = new DiffusionCUDASHFLTemp1(nd, dims.data());
 #else
   bmk = new Baseline(nd, dims.data());
 #endif
