@@ -62,8 +62,13 @@ class Baseline: public Diffusion {
             t = (z == nz_-1) ? c : c + nx_ * ny_;
             REAL f = 0;
             if (ndim_ == 2) {
+#if 1              
               f =  cc_ * f1_[c] + cw_ * f1_[w] + ce_ * f1_[e]
                   + cs_ * f1_[s] + cn_ * f1_[n];
+#else
+              f =  cc_ * f1_[c] 
+                  + cs_ * f1_[s] + cn_ * f1_[n];
+#endif
             } else if (ndim_ == 3) {
               f = cc_ * f1_[c] + cw_ * f1_[w] + ce_ * f1_[e]
                   + cs_ * f1_[s] + cn_ * f1_[n] + cb_ * f1_[b] + ct_ * f1_[t];

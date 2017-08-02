@@ -4,7 +4,7 @@
 
 #define USE_LDG
 
-#define BLOCK_T (4)
+#define BLOCK_T (2)
 
 namespace diffusion {
 namespace cuda_shfl_temp1 {
@@ -15,11 +15,11 @@ namespace cuda_shfl_temp1 {
 #define RCIDX(y) ((y)&1)
 #define RSIDX(y) ((~y)&1)
 
-__device__ REAL load(F1_DECL f1, int p, int y,
+__device__ REAL load(F1_DECL f1, int p, int x, int y,
                      int nx, int ny) {
-  y = MIN(0, y);
-  y = MAX(ny-1, y);
-  return f1[p+nx*y];
+  y = MAX(0, y);
+  y = MIN(ny-1, y);
+  return f1[p+x+nx*y];
 }
 
 __global__ void kernel2d(F1_DECL f1, F2_DECL f2,
@@ -44,12 +44,14 @@ __global__ void kernel2d(F1_DECL f1, F2_DECL f2,
   
   r[0][0] = f1[p];
 
+#if 1
   for (int y = 0; y < ny + BLOCK_T - 1; ++y) {
     REAL fn;
     int yt = y;
     for (int t = 0; t < BLOCK_T; ++t) {
       if (yt < 0) {
         r[t][0] = fn;
+        --yt;
         break;
       } else if (yt >= ny) {
         --yt;
@@ -57,7 +59,7 @@ __global__ void kernel2d(F1_DECL f1, F2_DECL f2,
       }
       REAL fc = r[t][RCIDX(yt)];
       if (t == 0) {
-        fn = load(f1, p, yt+1, nx, ny);
+        fn = load(f1, p, 0, yt+1, nx, ny);
       } else if (yt == ny - 1) {
         fn = fc;
       }
@@ -67,41 +69,51 @@ __global__ void kernel2d(F1_DECL f1, F2_DECL f2,
       } else {
         fs = r[t][RSIDX(yt)];
       }
-#if 0
-      REAL fe = 0;
-      REAL fw = 0;
-#else
+
       // fw
       REAL fw = __shfl_up(fc, 1);
       if (tid == 0) {
         if (i != 0) {
-          fw = f1[p-1];
+          fw = load(f1, p, -1, yt, nx, ny);
         }
       }
 
       // fw
       REAL fe = __shfl_down(fc, 1);
-      REAL fe_next_warp = 0;
-      if (x < NUM_WB_X-1) fe_next_warp = __shfl(fc, 0); // TODO: fc
       if (tid == WARP_SIZE -1) {
-        if (x == NUM_WB_X - 1) {
-          if (i + x_offset != nx - 1) {
-            fe = f1[p+x_offset+1];
-          }
-        } else {
-          fe = fe_next_warp;
+        if (i != nx - 1) {
+          fe = load(f1, p, 1, yt, nx, ny);
         }
       }
-#endif
       
       REAL rn = STENCIL2D(fc, fn, fs, fe, fw);
       r[t][RSIDX(yt)] = fn;
       fn = rn;
       --yt;
     }
+    ++yt;
     if (yt >= 0) f2[p+nx*yt] = fn;
   }
   
+#else
+  for (int y = 0; y < ny; ++y) {
+    REAL fc = r[0][RCIDX(y)];
+    REAL fn = load(f1, p, y+1, nx, ny);
+    REAL fs;
+    if (y == 0) {
+      fs = fc;
+    } else {
+      fs = r[0][RSIDX(y)];
+    }
+
+    REAL fe = 0;
+    REAL fw = 0;
+      
+    REAL rn = STENCIL2D(fc, fn, fs, fe, fw);
+    r[0][RSIDX(y)] = fn;
+    f2[p+nx*y] = rn;
+  }
+#endif
   return;
 }
 
@@ -239,9 +251,11 @@ void DiffusionCUDASHFLTemp1::RunKernel(int count) {
   //dim3 grid_dim(nx_ / BLOCK_X, ny_ / BLOCK_Y);
   dim3 grid_dim(nx_ / BLOCK_X, 1);
   if (ndim_ == 3) grid_dim.z = grid_z_;
-
+  
+  assert(count % BLOCK_T == 0);
+  
   CHECK_CUDA(cudaEventRecord(ev1_));
-  for (int i = 0; i < count; ++i) {
+  for (int i = 0; i < count; i += BLOCK_T) {
     if (ndim_ == 2) {
       cuda_shfl_temp1::kernel2d<<<grid_dim, block_dim>>>
           (f1_d_, f2_d_, nx_, ny_, ce_, cw_, cn_, cs_, cc_);

@@ -5,7 +5,7 @@ include $(INCLUDEPATH)common.mk
 SRC = 
 OBJ = $(filter %.o,$(SRC:%.cc=%.o)) $(filter %.o,$(SRC:%.c=%.o))
 
-EXE = diffusion_baseline 
+EXE = diffusion_baseline.exe
 
 # Options
 ifneq ($(BLOCK_X),)
@@ -42,9 +42,9 @@ endif
 all: $(EXE)
 
 .PHONY: baseline
-baseline: diffusion_baseline
+baseline: diffusion_baseline.exe
 
-diffusion_baseline: $(OBJ) main_baseline.o
+diffusion_baseline.exe: $(OBJ) main_baseline.o
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
 main_baseline.o: main.cc

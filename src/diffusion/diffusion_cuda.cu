@@ -16,11 +16,12 @@ __global__ void kernel2d(const REAL *f1, REAL *f2,
   int e = (i == nx-1)     ? c : c + 1;
   int s = (j == 0)        ? c : c - nx;
   int n = (j == ny-1)     ? c : c + nx;
-#if 0  
+#if 1
   f2[c] = cc * f1[c] + cw * f1[w] + ce * f1[e] + cs * f1[s]
       + cn * f1[n];
 #else
-  f2[c] = cc * f1[c] + cw * f1[w] + cn * f1[n];
+  f2[c] = cc * f1[c] +cs * f1[s]
+      + cn * f1[n];
 #endif
   return;
 }
