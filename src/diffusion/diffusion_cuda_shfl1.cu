@@ -2,10 +2,6 @@
 #include "diffusion/diffusion_cuda_shfl.h"
 #include "common/cuda_util.h"
 
-#define WARP_SIZE (32)
-#define WARP_MASK (WARP_SIZE-1)
-#define NUM_WB_X (BLOCK_X / WARP_SIZE)
-
 #define USE_LDG
 
 namespace diffusion {

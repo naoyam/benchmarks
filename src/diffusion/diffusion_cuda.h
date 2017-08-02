@@ -15,6 +15,10 @@
 #define GRID_Z (4)
 #endif
 
+#define WARP_SIZE (32)
+#define WARP_MASK (WARP_SIZE-1)
+#define NUM_WB_X (BLOCK_X / WARP_SIZE)
+
 #define F1_DECL const REAL * __restrict__
 #define F2_DECL REAL * __restrict__
 

@@ -25,6 +25,10 @@
 #define SHIFT3(x, y, z) x = y; y = z
 #define SHIFT4(x, y, z, k) x = y; y = z; z = k
 
+#define MIN(x, y) ((x) < (y) ? (x) : (y))
+#define MAX(x, y) ((x) > (y) ? (x) : (y))
+
+
 #define STRINGIFY(x) #x
 #ifndef UNROLL
 //#define PRAGMA_UNROLL(x)
@@ -63,9 +67,14 @@ void Initialize(REAL *buff, const int nx, const int ny, const int nz,
         int j = jz*nx*ny + jy*nx + jx;
         REAL x = dx*((REAL)(jx + 0.5));
         REAL y = dy*((REAL)(jy + 0.5));
+#if 1 
+        REAL f0 = (REAL)0.125
+            *(1.0 - ay*cos(ky*y));
+#else
         REAL f0 = (REAL)0.125
           *(1.0 - ax*cos(kx*x))
             *(1.0 - ay*cos(ky*y));
+#endif
         if (ndim == 3) {
           REAL z = dz*((REAL)(jz + 0.5));          
           f0 *= (1.0 - az*cos(kz*z));

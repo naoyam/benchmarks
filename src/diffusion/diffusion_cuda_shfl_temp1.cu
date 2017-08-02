@@ -37,8 +37,11 @@ __global__ void kernel2d(F1_DECL f1, F2_DECL f2,
   int p = OFFSET2D(i, j, nx);
 
   REAL r[BLOCK_T][2];
-  REAL fe, fw = 0;
+  //REAL fe, fw = 0;
 
+  int x = 0;
+  int x_offset = 0;
+  
   r[0][0] = f1[p];
 
   for (int y = 0; y < ny + BLOCK_T - 1; ++y) {
@@ -64,6 +67,33 @@ __global__ void kernel2d(F1_DECL f1, F2_DECL f2,
       } else {
         fs = r[t][RSIDX(yt)];
       }
+#if 0
+      REAL fe = 0;
+      REAL fw = 0;
+#else
+      // fw
+      REAL fw = __shfl_up(fc, 1);
+      if (tid == 0) {
+        if (i != 0) {
+          fw = f1[p-1];
+        }
+      }
+
+      // fw
+      REAL fe = __shfl_down(fc, 1);
+      REAL fe_next_warp = 0;
+      if (x < NUM_WB_X-1) fe_next_warp = __shfl(fc, 0); // TODO: fc
+      if (tid == WARP_SIZE -1) {
+        if (x == NUM_WB_X - 1) {
+          if (i + x_offset != nx - 1) {
+            fe = f1[p+x_offset+1];
+          }
+        } else {
+          fe = fe_next_warp;
+        }
+      }
+#endif
+      
       REAL rn = STENCIL2D(fc, fn, fs, fe, fw);
       r[t][RSIDX(yt)] = fn;
       fn = rn;
