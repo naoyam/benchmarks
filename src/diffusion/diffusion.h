@@ -27,6 +27,7 @@
 
 #define MIN(x, y) ((x) < (y) ? (x) : (y))
 #define MAX(x, y) ((x) > (y) ? (x) : (y))
+#define SWAP(x, y, T) do { T t = x; x = y; y = t; } while (0)
 
 
 #define STRINGIFY(x) #x

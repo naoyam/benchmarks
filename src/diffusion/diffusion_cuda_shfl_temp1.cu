@@ -5,6 +5,8 @@
 #define USE_LDG
 
 #define BLOCK_T (2)
+#define BLOCK_T_MASK ((BLOCK_T)-1)
+#define BLOCK_T_BIT_POS (1)
 
 namespace diffusion {
 namespace cuda_shfl_temp1 {
@@ -15,11 +17,11 @@ namespace cuda_shfl_temp1 {
 #define RCIDX(y) ((y)&1)
 #define RSIDX(y) ((~y)&1)
 
-__device__ REAL load(F1_DECL f1, int p, int x, int y,
+__device__ REAL load(F1_DECL f1, int x, int y,
                      int nx, int ny) {
   y = MAX(0, y);
   y = MIN(ny-1, y);
-  return f1[p+x+nx*y];
+  return f1[x+nx*y];
 }
 
 __global__ void kernel2d(F1_DECL f1, F2_DECL f2,
@@ -30,36 +32,45 @@ __global__ void kernel2d(F1_DECL f1, F2_DECL f2,
   //compiler tid is less than WARP_SIZE
   //int tid = threadIdx.x;
   int tid = threadIdx.x & WARP_MASK;
-  int i = BLOCK_X * blockIdx.x + threadIdx.x;  
+  int i = BLOCK_X * blockIdx.x + threadIdx.x;
+  int ib = BLOCK_X * blockIdx.x + (tid & BLOCK_T_MASK)
+      + ((WARP_SIZE ^ ((tid & BLOCK_T) >> BLOCK_T_BIT_POS))
+         + ((tid & BLOCK_T) >> BLOCK_T_BIT_POS));
   int j = BLOCK_Y * blockIdx.y;
   int j_end = j + BLOCK_Y;
 
   int p = OFFSET2D(i, j, nx);
+  int b_off = OFFSET2D(ib, j, nx);
 
   REAL r[BLOCK_T][2];
+  REAL b[BLOCK_T][2];
   //REAL fe, fw = 0;
 
   int x = 0;
   int x_offset = 0;
   
-  r[0][0] = f1[p];
+  r[0][0] = f1[p]; // load(f1, i, j, nx, ny);
+  b[0][0] = load(f1, ib, j, nx, ny);
 
-#if 1
   for (int y = 0; y < ny + BLOCK_T - 1; ++y) {
     REAL fn;
+    REAL bn;
     int yt = y;
     for (int t = 0; t < BLOCK_T; ++t) {
       if (yt < 0) {
         r[t][0] = fn;
+        b[t][0] = bn;        
         --yt;
         break;
       } else if (yt >= ny) {
         --yt;
         continue;
       }
+
+      // main region
       REAL fc = r[t][RCIDX(yt)];
       if (t == 0) {
-        fn = load(f1, p, 0, yt+1, nx, ny);
+        fn = load(f1, i, j + yt + 1, nx, ny);
       } else if (yt == ny - 1) {
         fn = fc;
       }
@@ -70,50 +81,43 @@ __global__ void kernel2d(F1_DECL f1, F2_DECL f2,
         fs = r[t][RSIDX(yt)];
       }
 
-      // fw
-      REAL fw = __shfl_up(fc, 1);
-      if (tid == 0) {
-        if (i != 0) {
-          fw = load(f1, p, -1, yt, nx, ny);
-        }
+      // boundary region
+      REAL bc = b[t][RCIDX(yt)];
+      if (t == 0) {
+        bn = load(f1, b_off, j + yt + 1, nx, ny);
+      } else if (yt == ny - 1) {
+        bn = bc;
+      }
+      REAL bs;
+      if (yt == 0) {
+        bs = bc;
+      } else {
+        bs = b[t][RSIDX(yt)];
       }
 
-      // fw
-      REAL fe = __shfl_down(fc, 1);
-      if (tid == WARP_SIZE -1) {
-        if (i != nx - 1) {
-          fe = load(f1, p, 1, yt, nx, ny);
-        }
-      }
+      REAL fw = __shfl(fc, (tid - 1 + WARP_SIZE) & WARP_MASK);
+      REAL fe = __shfl(fc, (tid + 1) & WARP_MASK);
+      REAL bw = __shfl(bc, (tid - 1 + WARP_SIZE) & WARP_MASK);
+      REAL be = __shfl(bc, (tid + 1) & WARP_MASK);
+      if (tid == 0 || tid == WARP_SIZE - 1) {
+        SWAP(fw, bw, REAL);
+        SWAP(fe, be, REAL);
+      }        
       
       REAL rn = STENCIL2D(fc, fn, fs, fe, fw);
       r[t][RSIDX(yt)] = fn;
       fn = rn;
+
+      REAL bn = STENCIL2D(bc, bn, bs, be, bw);
+      b[t][RSIDX(yt)] = bn;
+      bn = bn;
+      
       --yt;
     }
     ++yt;
     if (yt >= 0) f2[p+nx*yt] = fn;
   }
   
-#else
-  for (int y = 0; y < ny; ++y) {
-    REAL fc = r[0][RCIDX(y)];
-    REAL fn = load(f1, p, y+1, nx, ny);
-    REAL fs;
-    if (y == 0) {
-      fs = fc;
-    } else {
-      fs = r[0][RSIDX(y)];
-    }
-
-    REAL fe = 0;
-    REAL fw = 0;
-      
-    REAL rn = STENCIL2D(fc, fn, fs, fe, fw);
-    r[0][RSIDX(y)] = fn;
-    f2[p+nx*y] = rn;
-  }
-#endif
   return;
 }
 
