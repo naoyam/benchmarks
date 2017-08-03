@@ -76,6 +76,7 @@ void Initialize(REAL *buff, const int nx, const int ny, const int nz,
           f0 *= (1.0 - az*cos(kz*z));
         }
         buff[j] = f0;
+        //buff[j] = (REAL)j;
       }
     }
   }
