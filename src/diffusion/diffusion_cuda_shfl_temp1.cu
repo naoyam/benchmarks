@@ -4,7 +4,7 @@
 
 #define USE_LDG
 
-#define BLOCK_T (4)
+#define BLOCK_T (2)
 #define BLOCK_T_MASK ((BLOCK_T)-1)
 
 namespace diffusion {
@@ -14,7 +14,7 @@ namespace cuda_shfl_temp1 {
   (cc * (fc) + cw * (fw) + ce * (fe) + cs * (fs) + cn * (fn))
 
 #define RCIDX(y) ((y)&1)
-#define RSIDX(y) ((~y)&1)
+#define RSIDX(y) (RCIDX(y)^1)
 
 __device__ REAL load(F1_DECL f1, int x, int y,
                      int nx, int ny) {
@@ -22,6 +22,64 @@ __device__ REAL load(F1_DECL f1, int x, int y,
   y = MIN(MAX(y, 0), ny - 1);
   return f1[x+nx*y];
 }
+
+#define KERNEL_COMP(t, r0, r1) do {                             \
+    if (yt < 0) {                                               \
+      r[t][0] = fn;                                             \
+      b[t][0] = bn;                                             \
+      --yt;                                                     \
+      break;                                                    \
+    } else if (yt >= ny) {                                      \
+      --yt;                                                     \
+      continue;                                                 \
+    }                                                           \
+                                                                \
+    REAL fc = r[t][r0];                                         \
+    if (t == 0) {                                               \
+      fn = load(f1, i, j + yt + 1, nx, ny);                     \
+    } else if (yt == ny - 1) {                                  \
+      fn = fc;                                                  \
+    }                                                           \
+    REAL fs;                                                    \
+    if (yt == 0) {                                              \
+      fs = fc;                                                  \
+    } else {                                                    \
+      fs = r[t][r1];                                            \
+    }                                                           \
+    REAL bc = b[t][r0];                                         \
+    if (t == 0) {                                               \
+      bn = load(f1, ib, j + yt + 1, nx, ny);                    \
+    } else if (yt == ny - 1) {                                  \
+      bn = bc;                                                  \
+    }                                                           \
+    REAL bs;                                                    \
+    if (yt == 0) {                                              \
+      bs = bc;                                                  \
+    } else {                                                    \
+      bs = b[t][r1];                                            \
+    }                                                           \
+    REAL fw = __shfl(fc, (tid - 1 + WARP_SIZE) & WARP_MASK);    \
+    REAL fe = __shfl(fc, (tid + 1) & WARP_MASK);                \
+    REAL bw = __shfl(bc, (tid - 1 + WARP_SIZE) & WARP_MASK);    \
+    REAL be = __shfl(bc, (tid + 1) & WARP_MASK);                \
+    if (tid == 0) {                                             \
+      SWAP(fw, bw, REAL);                                       \
+    } else if (tid == WARP_SIZE - 1) {                          \
+      SWAP(fe, be, REAL);                                       \
+    }                                                           \
+    if (i == 0) {                                               \
+      fw = fc;                                                  \
+    } else if (i == nx - 1) {                                   \
+      fe = fc;                                                  \
+    }                                                           \
+    REAL f_next = STENCIL2D(fc, fn, fs, fe, fw);                \
+    r[t][r1] = fn;                                              \
+    fn = f_next;                                                \
+    REAL b_next = STENCIL2D(bc, bn, bs, be, bw);                \
+    b[t][r1] = bn;                                              \
+    bn = b_next;                                                \
+    --yt;                                                       \
+  } while (0)
 
 __global__ void kernel2d(F1_DECL f1, F2_DECL f2,
                          int nx, int ny,
@@ -39,7 +97,6 @@ __global__ void kernel2d(F1_DECL f1, F2_DECL f2,
     ib = BLOCK_X * blockIdx.x - WARP_SIZE
         + (tid | ((WARP_SIZE - 1) & (~BLOCK_T_MASK)));
   }
-  //printf("IB: i: %d, tid: %d, %d\n", i, tid, ib);
 
   int j = BLOCK_Y * blockIdx.y;
   //int j_end = j + BLOCK_Y;
@@ -53,100 +110,56 @@ __global__ void kernel2d(F1_DECL f1, F2_DECL f2,
   int x_offset = 0;
   
   r[0][0] = f1[p]; // load(f1, i, j, nx, ny);
-  if (blockIdx.x == 0) {
-    //printf("0: tid=%d, p=%d, %f\n", tid, p, f1[p]);
-  }
-  
   b[0][0] = load(f1, ib, j, nx, ny);
 
-  for (int y = 0; y < ny + BLOCK_T - 1; ++y) {
+  for (int y = 0; y < ny + BLOCK_T - 1; y += 2) {
+#pragma unroll
+    for (int k = 0; k < 2; ++k) {
+      REAL fn;
+      REAL bn;
+      int yt = y + k;
+      int r0 = 0;
+      int r1 = 1;
+
+#if BLOCK_T == 1
+      KERNEL_COMP(0, r0, r1);
+#elif BLOCK_T == 2
+      KERNEL_COMP(0, r0, r1);
+      KERNEL_COMP(1, r1, r0);      
+#elif BLOCK_T == 4
+      KERNEL_COMP(0, r0, r1);
+      KERNEL_COMP(1, r1, r0);      
+      KERNEL_COMP(2, r0, r1);
+      KERNEL_COMP(3, r1, r0);      
+#endif
+      ++yt;
+      if (yt >= 0) f2[p+nx*yt] = fn;
+    }
+  }
+
+  if ((ny + BLOCK_T - 1) % 2 == 1) {
+    int y = ny + BLOCK_T - 2;
     REAL fn;
     REAL bn;
     int yt = y;
-    for (int t = 0; t < BLOCK_T; ++t) {
-      if (yt < 0) {
-        r[t][0] = fn;
-        b[t][0] = bn;        
-        --yt;
-        break;
-      } else if (yt >= ny) {
-        --yt;
-        continue;
-      }
+    int r0 = 0;
+    int r1 = 1;
 
-      // main region
-      REAL fc = r[t][RCIDX(yt)];
-      if (tid == 0 && blockIdx.x == 0) {
-        //printf("tid=%d, p=%d, y=%d, %f\n", tid, p, y, fc);
-      }
-      
-      if (t == 0) {
-        fn = load(f1, i, j + yt + 1, nx, ny);
-      } else if (yt == ny - 1) {
-        fn = fc;
-      }
-      REAL fs;
-      if (yt == 0) {
-        fs = fc;
-      } else {
-        fs = r[t][RSIDX(yt)];
-      }
-
-      // boundary region
-      REAL bc = b[t][RCIDX(yt)];
-      if (t == 0) {
-        bn = load(f1, ib, j + yt + 1, nx, ny);
-      } else if (yt == ny - 1) {
-        bn = bc;
-      }
-      REAL bs;
-      if (yt == 0) {
-        bs = bc;
-      } else {
-        bs = b[t][RSIDX(yt)];
-      }
-
-      REAL fw = __shfl(fc, (tid - 1 + WARP_SIZE) & WARP_MASK);
-      REAL fe = __shfl(fc, (tid + 1) & WARP_MASK);
-      REAL bw = __shfl(bc, (tid - 1 + WARP_SIZE) & WARP_MASK);
-      REAL be = __shfl(bc, (tid + 1) & WARP_MASK);
-      if (tid == 0) {
-        SWAP(fw, bw, REAL);        
-      } else if (tid == WARP_SIZE - 1) {
-        SWAP(fe, be, REAL);
-      }        
-
-      if (i == 0) {
-        fw = fc;
-      } else if (i == nx - 1) {
-        fe = fc;
-      }
-      
-      
-      REAL f_next = STENCIL2D(fc, fn, fs, fe, fw);
-      if (blockIdx.x == 0) {
-        if (tid == 0 || tid == WARP_SIZE - 1) {
-#if 0          
-          printf("tid=%d, t=%d, yt=%d, c=%f, n=%f, s=%f, e=%f, w=%f"
-                 ", bc=%f, bn=%f, bs=%f, be=%f, bw=%f\n",
-                 tid, t, yt, fc, fn, fs, fe, fw,
-                 bc, bn, bs, be, bw);
-#endif          
-        }
-      }
-      r[t][RSIDX(yt)] = fn;
-      fn = f_next;
-
-      REAL b_next = STENCIL2D(bc, bn, bs, be, bw);
-      b[t][RSIDX(yt)] = bn;
-      bn = b_next;
-      
-      --yt;
-    }
+#if BLOCK_T == 1
+    KERNEL_COMP(0, r0, r1);
+#elif BLOCK_T == 2
+    KERNEL_COMP(0, r0, r1);
+    KERNEL_COMP(1, r1, r0);      
+#elif BLOCK_T == 4
+    KERNEL_COMP(0, r0, r1);
+    KERNEL_COMP(1, r1, r0);      
+    KERNEL_COMP(2, r0, r1);
+    KERNEL_COMP(3, r1, r0);      
+#endif
     ++yt;
     if (yt >= 0) f2[p+nx*yt] = fn;
   }
-  
+
   return;
 }
 
